@@ -1,0 +1,22 @@
+{
+  "properties": [
+    {
+      "name": "problem.type-url",
+      "type": "java.lang.String",
+      "defaultValue": "http://localhost:8080/problems/help.html",
+      "description": "Default: http://localhost:8080/problems/help.html, Help page base url."
+    },
+    {
+      "name": "problem.dao-advice-enabled",
+      "type": "java.lang.Boolean",
+      "defaultValue": "true",
+      "description": "Default: true, Whether or not to Enable DAO exception handling advices."
+    },
+    {
+      "name": "problem.security-advice-enabled",
+      "type": "java.lang.Boolean",
+      "defaultValue": "true",
+      "description": "Default: true, Whether or not to Enable Security exception handling advices."
+    }
+  ]
+}

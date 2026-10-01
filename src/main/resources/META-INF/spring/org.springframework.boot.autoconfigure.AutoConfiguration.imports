@@ -1,0 +1,5 @@
+com.neolama.oxneer.common.exception.autoconfigure.ProblemConfiguration
+com.neolama.oxneer.common.exception.autoconfigure.DatabaseConstraintResolverConfiguration
+com.neolama.oxneer.common.exception.autoconfigure.WebDaoExceptionHandler
+com.neolama.oxneer.common.exception.autoconfigure.WebSecurityExceptionHandler
+com.neolama.oxneer.common.exception.autoconfigure.WebExceptionHandler
