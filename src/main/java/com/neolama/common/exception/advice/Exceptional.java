@@ -37,18 +37,25 @@ public interface Exceptional {
       String statusCode =
           ProblemMessageProvider.getMessage(
               STATUS_CODE_PREFIX + errorKey, String.valueOf(defStatus.value()));
-      return HttpStatus.valueOf(statusCode);
+      return HttpStatus.valueOf(Integer.parseInt(statusCode));
     } catch (final Exception e) {
+      logger.warn("Failed to resolve status code for error key: {}", errorKey, e);
       // Ignore on purpose
       return defStatus;
     }
   }
 
   default HttpStatus resolveStatus(final String errorKey, final HttpStatus defaultStatus) {
-    String statusCode =
-        ProblemMessageProvider.getMessage(
-            STATUS_CODE_PREFIX + errorKey, String.valueOf(defaultStatus.value()));
-    return HttpStatus.valueOf(statusCode);
+    try {
+      String statusCode =
+          ProblemMessageProvider.getMessage(
+              STATUS_CODE_PREFIX + errorKey, String.valueOf(defaultStatus.value()));
+      return HttpStatus.valueOf(Integer.parseInt(statusCode));
+    } catch (final Exception e) {
+      logger.warn("Failed to resolve status code for error key: {}", errorKey, e);
+      // Ignore on purpose
+      return defaultStatus;
+    }
   }
 
   default ProblemDetails toProblemDetails(final Throwable throwable) {
@@ -77,7 +84,7 @@ public interface Exceptional {
       final NativeWebRequest request,
       final Throwable throwable) {
     log(throwable, HttpStatus.valueOf(problemDetails.getStatus()));
-    problemDetails.setType(typeUri(request, problemDetails.getCode()));
+    problemDetails.setType(URI.create("about:blank"));
     problemDetails.setInstance(requestUri(request));
     problemDetails.setMethod(requestMethod(request));
     return problemDetails;
@@ -91,13 +98,13 @@ public interface Exceptional {
     return HttpMethod.valueOf(request.getNativeRequest(HttpServletRequest.class).getMethod());
   }
 
-  default URI typeUri(final NativeWebRequest request, final String code) {
-    HttpServletRequest httpRequest = request.getNativeRequest(HttpServletRequest.class);
-    StringBuffer url = httpRequest.getRequestURL();
-    String path = httpRequest.getRequestURI();
-    String origin = url.substring(0, url.length() - path.length());
-    return URI.create(origin + "/problems/help.html#" + code);
-  }
+  //  default URI typeUri(final NativeWebRequest request, final String code) {
+  //    HttpServletRequest httpRequest = request.getNativeRequest(HttpServletRequest.class);
+  //    StringBuffer url = httpRequest.getRequestURL();
+  //    String path = httpRequest.getRequestURI();
+  //    String origin = url.substring(0, url.length() - path.length());
+  //    return URI.create(origin + "/problems/help.html#" + code);
+  //  }
 
   /**
    * Logs the throwable and status.

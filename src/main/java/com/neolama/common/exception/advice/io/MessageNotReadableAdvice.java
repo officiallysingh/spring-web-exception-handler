@@ -25,8 +25,11 @@ public interface MessageNotReadableAdvice extends Exceptional {
     if (exception.getCause() instanceof InvalidFormatException invalidFormatException) {
       return handleInvalidFormatException(invalidFormatException, request);
     } else {
-      final HttpStatus status = resolveStatus(exception, HttpStatus.BAD_REQUEST);
-      return toProblemDetails(exception, status);
+      final String exceptionKey = ClassUtils.getShortClassName(exception.getClass());
+      logExceptionKey(exceptionKey);
+      final HttpStatus status = resolveStatus(exceptionKey, HttpStatus.BAD_REQUEST);
+      final ProblemDetails problemDetails = toProblemDetails(exception, status);
+      return toResponse(problemDetails, request, exception);
     }
   }
 
