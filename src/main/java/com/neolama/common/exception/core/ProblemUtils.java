@@ -5,7 +5,6 @@ import static org.springframework.core.annotation.AnnotatedElementUtils.findMerg
 import jakarta.annotation.Nullable;
 import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
-import java.util.Locale;
 import java.util.Optional;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -116,11 +115,15 @@ public class ProblemUtils {
     return escapedStacktrace.toString();
   }
 
-  public static String getExceptionCode(String value) {
+  public static String getProblemCode(final String value) {
     return value
         .replaceAll("([a-z0-9])([A-Z])", "$1-$2")
         .replaceAll("([A-Z]+)([A-Z][a-z])", "$1-$2")
-        .toLowerCase(Locale.ROOT)
+        .toLowerCase()
         .replaceFirst("-exception$", "");
+  }
+
+  public static String getProblemCode(final HttpStatus status) {
+    return status.name().toLowerCase().replace('_', '-');
   }
 }

@@ -58,7 +58,9 @@ public class ProblemDetails extends ProblemDetail {
       @Nullable Object[] detailArgs,
       final HttpStatus status) {
     final String defaultCode =
-        errorKey.contains(".") ? "internal-server-error" : ProblemUtils.getExceptionCode(errorKey);
+        errorKey.contains(".")
+            ? ProblemUtils.getProblemCode(status)
+            : ProblemUtils.getProblemCode(errorKey);
     final String code = ProblemMessageProvider.getMessage(CODE_CODE_PREFIX + errorKey, defaultCode);
     final String title =
         ProblemMessageProvider.getMessage(TITLE_CODE_PREFIX + errorKey, status.getReasonPhrase());

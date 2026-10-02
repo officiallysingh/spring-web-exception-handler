@@ -33,11 +33,14 @@
     <properties>
         <java.version>21</java.version>
         <spring-boot.version>4.1.1</spring-boot.version>
-        <commons-collections4.version>4.5.0</commons-collections4.version>
-        <mongodb.driver.version>5.8.1</mongodb.driver.version>
+        <commons-collections4.version>4.6.0</commons-collections4.version>
         <lombok.version>1.18.46</lombok.version>
 
         <scm.connection>scm:git:git@github.com:officiallysingh/pring-web-exception-handler.git</scm.connection>
+        <central-publishing-maven-plugin.version>0.11.0</central-publishing-maven-plugin.version>
+
+        <maven-compiler-plugin.version>3.16.0</maven-compiler-plugin.version>
+        <maven-jar-plugin.version>3.5.1</maven-jar-plugin.version>
         <maven-surefire-plugin.version>3.6.0</maven-surefire-plugin.version>
         <maven-source-plugin.version>3.4.0</maven-source-plugin.version>
         <maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
@@ -46,10 +49,6 @@
         <maven-deploy-plugin.version>3.2.0</maven-deploy-plugin.version>
 
         <fmt-maven-plugin.version>2.29</fmt-maven-plugin.version>
-        <central-publishing-maven-plugin.version>0.11.0</central-publishing-maven-plugin.version>
-
-        <maven-jar-plugin.version>3.5.1</maven-jar-plugin.version>
-        <maven-compiler-plugin.version>3.16.0</maven-compiler-plugin.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
