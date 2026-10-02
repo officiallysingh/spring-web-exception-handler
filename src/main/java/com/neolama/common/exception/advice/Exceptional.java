@@ -34,7 +34,7 @@ public interface Exceptional {
     final HttpStatus defStatus = ProblemUtils.resolveStatus(throwable).orElse(defaultStatus);
     final String errorKey = ClassUtils.getShortClassName(throwable.getClass());
     try {
-      String statusCode =
+      final String statusCode =
           ProblemMessageProvider.getMessage(
               STATUS_CODE_PREFIX + errorKey, String.valueOf(defStatus.value()));
       return HttpStatus.valueOf(Integer.parseInt(statusCode));
@@ -47,7 +47,7 @@ public interface Exceptional {
 
   default HttpStatus resolveStatus(final String errorKey, final HttpStatus defaultStatus) {
     try {
-      String statusCode =
+      final String statusCode =
           ProblemMessageProvider.getMessage(
               STATUS_CODE_PREFIX + errorKey, String.valueOf(defaultStatus.value()));
       return HttpStatus.valueOf(Integer.parseInt(statusCode));
@@ -59,7 +59,7 @@ public interface Exceptional {
   }
 
   default ProblemDetails toProblemDetails(final Throwable throwable) {
-    HttpStatus status = resolveStatus(throwable);
+    final HttpStatus status = resolveStatus(throwable);
     return toProblemDetails(throwable, status);
   }
 
@@ -83,10 +83,10 @@ public interface Exceptional {
       final ProblemDetails problemDetails,
       final NativeWebRequest request,
       final Throwable throwable) {
-    log(throwable, HttpStatus.valueOf(problemDetails.getStatus()));
-    problemDetails.setType(URI.create("about:blank"));
+    //    problemDetails.setType(typeUri(request, problemDetails.getCode()));
     problemDetails.setInstance(requestUri(request));
     problemDetails.setMethod(requestMethod(request));
+    log(throwable, HttpStatus.valueOf(problemDetails.getStatus()));
     return problemDetails;
   }
 
@@ -125,7 +125,7 @@ public interface Exceptional {
   // }
   // }
 
-  default void logExceptionKey(String exceptionKey) {
+  default void logExceptionKey(final String exceptionKey) {
     logger.trace(
         "{}{}{}",
         EXCEPTION_KEY_LOG_START,
@@ -133,7 +133,7 @@ public interface Exceptional {
         exceptionKey + System.lineSeparator() + KEYS_LOG_END);
   }
 
-  default void logErrorKey(String errorKey) {
+  default void logErrorKey(final String errorKey) {
     logger.trace(
         "{}{}{}",
         ERROR_KEYS_LOG_START,
@@ -141,7 +141,7 @@ public interface Exceptional {
         errorKey + System.lineSeparator() + KEYS_LOG_END);
   }
 
-  default void logErrorKeys(String[] errorKeys) {
+  default void logErrorKeys(final String[] errorKeys) {
     logger.trace(
         "{}\n{}\n{}",
         ERROR_KEYS_LOG_START,

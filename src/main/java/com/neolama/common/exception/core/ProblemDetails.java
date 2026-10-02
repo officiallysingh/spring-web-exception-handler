@@ -5,6 +5,7 @@ import static com.neolama.common.exception.core.ProblemConstant.*;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.neolama.common.exception.autoconfigure.ProblemMessageProvider;
+import java.net.URI;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.Collection;
@@ -36,6 +37,8 @@ import org.springframework.http.ProblemDetail;
 public class ProblemDetails extends ProblemDetail {
 
   private static final String TYPE_URL = "http://localhost:8090/";
+
+  private static final URI DEFAULT_TYPE_URL = URI.create("about:blank");
 
   private String code;
 
@@ -80,6 +83,7 @@ public class ProblemDetails extends ProblemDetail {
   public static ProblemDetails of(
       final HttpStatus status, final String code, final String title, final String detail) {
     ProblemDetails problemDetails = new ProblemDetails();
+    problemDetails.setType(DEFAULT_TYPE_URL);
     problemDetails.setStatus(status);
     problemDetails.setTitle(title);
     problemDetails.setDetail(detail);

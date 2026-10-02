@@ -33,21 +33,23 @@ public class ThrowableProblem extends RuntimeException {
 
   /**
    * Compact line used by the logger. Unset fields are left out, so a missing file logs as {@code
-   * ThrowableProblem: 404 Not Found: File not found {code=404}}.
+   * ThrowableProblem: GET /api/v1/blobs/69285fc89b0e1b8db3e753a3 — 404 file-not-found: File not
+   * found}.
    */
   @Override
   public String toString() {
     final StringBuilder message = new StringBuilder(128);
-    message.append(getClass().getSimpleName()).append(": ").append(problemDetails.getStatus());
-    final String title = problemDetails.getTitle();
-    append(message, " ", title);
-    final String detail = problemDetails.getDetail();
-    if (detail != null && !detail.isBlank() && !detail.equals(title)) {
-      message.append(": ").append(detail);
+    message.append(getClass().getSimpleName()).append(": ");
+    final int requestStart = message.length();
+    append(message, "", this.problemDetails.getMethod());
+    append(message, message.length() > requestStart ? " " : "", this.problemDetails.getInstance());
+    if (message.length() > requestStart) {
+      message.append(" — ");
     }
-    append(message, " type=", problemDetails.getType());
-    append(message, " instance=", problemDetails.getInstance());
-    final Map<String, Object> properties = problemDetails.getProperties();
+    message.append(this.problemDetails.getStatus());
+    append(message, " ", this.problemDetails.getCode());
+    append(message, ": ", this.problemDetails.getDetail());
+    final Map<String, Object> properties = this.problemDetails.getProperties();
     if (properties != null && !properties.isEmpty()) {
       message.append(' ').append(properties);
     }
