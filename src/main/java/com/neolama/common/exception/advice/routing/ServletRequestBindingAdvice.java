@@ -13,7 +13,7 @@ public interface ServletRequestBindingAdvice extends Exceptional {
   default ProblemDetails handleServletRequestBinding(
       final ServletRequestBindingException exception, final NativeWebRequest request) {
     // TODO: Can improvise
-    final HttpStatus status = HttpStatus.BAD_REQUEST;
+    final HttpStatus status = resolveStatus(exception, HttpStatus.BAD_REQUEST);
     final ProblemDetails problemDetails = toProblemDetails(exception, status);
     return toResponse(problemDetails, request, exception);
   }

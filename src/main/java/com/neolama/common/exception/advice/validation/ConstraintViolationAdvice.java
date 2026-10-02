@@ -20,12 +20,12 @@ public interface ConstraintViolationAdvice extends Exceptional {
   @ExceptionHandler
   default ProblemDetails handleConstraintViolationException(
       final ConstraintViolationException exception, final NativeWebRequest request) {
-    final HttpStatus status = HttpStatus.BAD_REQUEST;
+    final String errorKey = ClassUtils.getShortClassName(exception.getClass());
+    final HttpStatus status = resolveStatus(exception, HttpStatus.BAD_REQUEST);
     final List<Problem> violations =
         exception.getConstraintViolations().stream()
             .map(violation -> handleConstraintViolation(violation, exception, status))
             .toList();
-    final String errorKey = ClassUtils.getShortClassName(exception.getClass());
     final ProblemDetails problemDetails =
         toProblemDetails(errorKey, status, exception.getMessage());
     problemDetails.setViolations(violations);
@@ -36,17 +36,15 @@ public interface ConstraintViolationAdvice extends Exceptional {
       final ConstraintViolation<?> violation,
       final ConstraintViolationException exception,
       final HttpStatus status) {
-    String exceptionKey = ClassUtils.getShortClassName(exception.getClass());
-
-    String propertyPath = violation.getPropertyPath().toString();
-
+    final String exceptionKey = ClassUtils.getShortClassName(exception.getClass());
+    final String propertyPath = violation.getPropertyPath().toString();
     logErrorKey(exceptionKey + DOT + propertyPath);
 
-    ProblemMessageSourceResolver codeResolver =
+    final ProblemMessageSourceResolver codeResolver =
         ProblemMessageSourceResolver.of(CODE_CODE_PREFIX + exceptionKey, violation, status.value());
-    ProblemMessageSourceResolver messageResolver =
+    final ProblemMessageSourceResolver messageResolver =
         ProblemMessageSourceResolver.of(MESSAGE_CODE_PREFIX + exceptionKey, violation);
-    ProblemMessageSourceResolver detailsResolver =
+    final ProblemMessageSourceResolver detailsResolver =
         ProblemMessageSourceResolver.of(
             DETAIL_CODE_PREFIX + exceptionKey,
             violation,

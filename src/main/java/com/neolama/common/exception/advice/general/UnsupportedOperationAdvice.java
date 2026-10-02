@@ -11,7 +11,7 @@ public interface UnsupportedOperationAdvice extends Exceptional {
   @ExceptionHandler
   default ProblemDetails handleUnsupportedOperation(
       final UnsupportedOperationException exception, final NativeWebRequest request) {
-    final HttpStatus status = HttpStatus.NOT_IMPLEMENTED;
+    final HttpStatus status = resolveStatus(exception, HttpStatus.NOT_IMPLEMENTED);
     final ProblemDetails problemDetails = toProblemDetails(exception, status);
     return toResponse(problemDetails, request, exception);
   }

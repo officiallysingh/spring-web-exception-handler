@@ -12,7 +12,7 @@ public interface AccessDeniedExceptionAdvice extends Exceptional {
   @ExceptionHandler
   default ProblemDetails handleAccessDeniedException(
       final AccessDeniedException exception, final NativeWebRequest request) {
-    final HttpStatus status = HttpStatus.FORBIDDEN;
+    final HttpStatus status = resolveStatus(exception, HttpStatus.FORBIDDEN);
     final ProblemDetails problemDetails = toProblemDetails(exception, status);
     return toResponse(problemDetails, request, exception);
   }

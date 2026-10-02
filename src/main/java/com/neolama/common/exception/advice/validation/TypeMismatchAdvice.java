@@ -15,8 +15,9 @@ public interface TypeMismatchAdvice extends Exceptional {
   @ExceptionHandler
   default ProblemDetails handleTypeMismatch(
       final TypeMismatchException exception, final NativeWebRequest request) {
-    final HttpStatus status = HttpStatus.BAD_REQUEST;
     final String exceptionKey = ClassUtils.getShortClassName(exception.getClass());
+    logExceptionKey(exceptionKey);
+    final HttpStatus status = resolveStatus(exceptionKey, HttpStatus.BAD_REQUEST);
     final String propertyName = exception.getPropertyName();
     final String errorKey = exceptionKey + DOT + exception.getErrorCode() + DOT + propertyName;
     final ProblemDetails problemDetails =

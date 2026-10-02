@@ -33,7 +33,7 @@ public interface DataBufferLimitExceptionAdvice extends Exceptional {
 
     final String maxFileSizeAllowed = bytes != -1 ? DataSize.ofBytes(bytes).toString() : "UNKNOWN";
     final String errorKey = ClassUtils.getShortClassName(exception.getClass());
-    final HttpStatus status = HttpStatus.BAD_REQUEST;
+    final HttpStatus status = resolveStatus(errorKey, HttpStatus.BAD_REQUEST);
     final String defaultDetail =
         ProblemMessageProvider.getMessage(
             DETAIL_CODE_PREFIX + errorKey, defaultMessage, maxFileSizeAllowed);

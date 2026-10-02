@@ -14,10 +14,10 @@ public interface MethodArgumentNotValidAdvice extends BaseBindingResultHandlingA
   @ExceptionHandler
   default ProblemDetails handleMethodArgumentNotValid(
       final MethodArgumentNotValidException exception, final NativeWebRequest request) {
-    final HttpStatus status = HttpStatus.BAD_REQUEST;
+    final String errorKey = ClassUtils.getShortClassName(exception.getClass());
+    final HttpStatus status = resolveStatus(exception, HttpStatus.BAD_REQUEST);
     final List<Problem> violations =
         handleBindingResult(exception.getBindingResult(), exception, status);
-    final String errorKey = ClassUtils.getShortClassName(exception.getClass());
     final ProblemDetails problemDetails =
         toProblemDetails(errorKey, status, exception.getMessage());
     problemDetails.setViolations(violations);

@@ -17,8 +17,9 @@ public interface MissingServletRequestParameterAdvice extends Exceptional {
       final MissingServletRequestParameterException exception, final NativeWebRequest request) {
     // TODO: Can enhance
     final String exceptionKey = ClassUtils.getShortClassName(exception.getClass());
+    logExceptionKey(exceptionKey);
+    final HttpStatus status = resolveStatus(exceptionKey, HttpStatus.BAD_REQUEST);
     final String errorKey = exceptionKey + DOT + exception.getParameterName();
-    final HttpStatus status = HttpStatus.BAD_REQUEST;
     final ProblemDetails problemDetails =
         toProblemDetails(errorKey, status, exception.getMessage());
     return toResponse(problemDetails, request, exception);

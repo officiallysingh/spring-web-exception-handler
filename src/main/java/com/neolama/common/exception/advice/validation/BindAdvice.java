@@ -21,10 +21,10 @@ public interface BindAdvice extends BaseBindingResultHandlingAdvice {
   @ExceptionHandler
   default ProblemDetails handleBindException(
       final BindException exception, final NativeWebRequest request) {
-    final HttpStatus status = HttpStatus.BAD_REQUEST;
+    final String errorKey = ClassUtils.getShortClassName(exception.getClass());
+    final HttpStatus status = resolveStatus(exception, HttpStatus.BAD_REQUEST);
     final List<Problem> violations =
         handleBindingResult(exception.getBindingResult(), exception, status);
-    final String errorKey = ClassUtils.getShortClassName(exception.getClass());
     final ProblemDetails problemDetails =
         toProblemDetails(errorKey, status, exception.getMessage());
     problemDetails.setViolations(violations);

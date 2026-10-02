@@ -12,7 +12,7 @@ public interface NoHandlerFoundAdvice extends Exceptional {
   @ExceptionHandler
   default ProblemDetails handleNoHandlerFound(
       final NoHandlerFoundException exception, final NativeWebRequest request) {
-    final HttpStatus status = HttpStatus.NOT_FOUND;
+    final HttpStatus status = resolveStatus(exception, HttpStatus.NOT_FOUND);
     final ProblemDetails problemDetails = toProblemDetails(exception, status);
     return toResponse(problemDetails, request, exception);
   }

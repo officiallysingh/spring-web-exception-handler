@@ -3,7 +3,6 @@ package com.neolama.common.exception.advice.routing;
 import static com.neolama.common.exception.core.ProblemConstant.*;
 
 import com.neolama.common.exception.advice.Exceptional;
-import com.neolama.common.exception.autoconfigure.ProblemMessageProvider;
 import com.neolama.common.exception.core.ProblemDetails;
 import org.apache.commons.lang3.ClassUtils;
 import org.springframework.http.HttpStatus;
@@ -17,6 +16,8 @@ public interface MissingRequestHeaderAdvice extends Exceptional {
   default ProblemDetails handleMissingServletRequestParameter(
       final MissingRequestHeaderException exception, final NativeWebRequest request) {
     final String exceptionKey = ClassUtils.getShortClassName(exception.getClass());
+    logExceptionKey(exceptionKey);
+    final HttpStatus status = resolveStatus(exceptionKey, HttpStatus.BAD_REQUEST);
     final String parameterKey =
         exception.getParameter().getContainingClass().getSimpleName()
             + DOT
@@ -24,19 +25,8 @@ public interface MissingRequestHeaderAdvice extends Exceptional {
             + DOT
             + exception.getHeaderName();
     final String errorKey = exceptionKey + DOT + parameterKey;
-    logErrorKey(errorKey);
-
-    final String codeCode = CODE_CODE_PREFIX + DOT + errorKey;
-    final String messageCode = TITLE_CODE_PREFIX + DOT + errorKey;
-    final String detailCode = DETAIL_CODE_PREFIX + DOT + errorKey;
-
-    final HttpStatus status = HttpStatus.BAD_REQUEST;
-
-    final String code = ProblemMessageProvider.getMessage(codeCode, String.valueOf(status.value()));
-    final String title = ProblemMessageProvider.getMessage(messageCode, status.getReasonPhrase());
-    final String detail = ProblemMessageProvider.getMessage(detailCode, exception.getMessage());
-
-    final ProblemDetails problemDetails = ProblemDetails.of(status, code, title, detail);
+    final ProblemDetails problemDetails =
+        toProblemDetails(errorKey, status, exception.getMessage());
     return toResponse(problemDetails, request, exception);
   }
 }

@@ -13,7 +13,7 @@ public interface NotAcceptableStatusAdvice extends Exceptional {
   default ProblemDetails handleMediaTypeNotAcceptable(
       final NotAcceptableStatusException exception, final NativeWebRequest request) {
     // TODO: Can improvise
-    final HttpStatus status = HttpStatus.NOT_ACCEPTABLE;
+    final HttpStatus status = resolveStatus(exception, HttpStatus.NOT_ACCEPTABLE);
     final ProblemDetails problemDetails = toProblemDetails(exception, status);
     return toResponse(problemDetails, request, exception);
   }

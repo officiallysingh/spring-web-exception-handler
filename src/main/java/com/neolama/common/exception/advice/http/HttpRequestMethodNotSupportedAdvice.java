@@ -24,7 +24,7 @@ public interface HttpRequestMethodNotSupportedAdvice extends Exceptional {
     //    final HttpHeaders headers = new HttpHeaders();
     //    headers.setAllow(requireNonNull(exception.getSupportedHttpMethods()));
     final String errorKey = ClassUtils.getShortClassName(exception.getClass());
-    final HttpStatus status = HttpStatus.METHOD_NOT_ALLOWED;
+    final HttpStatus status = resolveStatus(errorKey, HttpStatus.METHOD_NOT_ALLOWED);
     final String defaultDetail =
         ProblemMessageProvider.getMessage(
             DETAIL_CODE_PREFIX + errorKey,

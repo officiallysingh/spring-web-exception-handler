@@ -22,8 +22,9 @@ public interface Exceptional {
 
   Logger logger = LoggerFactory.getLogger(Exceptional.class);
 
+  String EXCEPTION_KEY_LOG_START = "---------------------- Exception Key ----------------------";
   String ERROR_KEYS_LOG_START = "---------------------- Error Keys ----------------------";
-  String ERROR_KEYS_LOG_END = "--------------------------------------------------------";
+  String KEYS_LOG_END = "--------------------------------------------------------";
 
   default HttpStatus resolveStatus(final Throwable throwable) {
     return resolveStatus(throwable, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -41,6 +42,13 @@ public interface Exceptional {
       // Ignore on purpose
       return defStatus;
     }
+  }
+
+  default HttpStatus resolveStatus(final String errorKey, final HttpStatus defaultStatus) {
+    String statusCode =
+        ProblemMessageProvider.getMessage(
+            STATUS_CODE_PREFIX + errorKey, String.valueOf(defaultStatus.value()));
+    return HttpStatus.valueOf(statusCode);
   }
 
   default ProblemDetails toProblemDetails(final Throwable throwable) {
@@ -110,12 +118,20 @@ public interface Exceptional {
   // }
   // }
 
+  default void logExceptionKey(String exceptionKey) {
+    logger.trace(
+        "{}{}{}",
+        EXCEPTION_KEY_LOG_START,
+        System.lineSeparator(),
+        exceptionKey + System.lineSeparator() + KEYS_LOG_END);
+  }
+
   default void logErrorKey(String errorKey) {
     logger.trace(
         "{}{}{}",
         ERROR_KEYS_LOG_START,
         System.lineSeparator(),
-        errorKey + System.lineSeparator() + ERROR_KEYS_LOG_END);
+        errorKey + System.lineSeparator() + KEYS_LOG_END);
   }
 
   default void logErrorKeys(String[] errorKeys) {
@@ -123,6 +139,6 @@ public interface Exceptional {
         "{}\n{}\n{}",
         ERROR_KEYS_LOG_START,
         String.join(System.lineSeparator(), errorKeys),
-        ERROR_KEYS_LOG_END);
+        KEYS_LOG_END);
   }
 }

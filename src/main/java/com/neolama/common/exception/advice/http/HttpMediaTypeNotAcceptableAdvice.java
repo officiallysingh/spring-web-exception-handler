@@ -22,7 +22,7 @@ public interface HttpMediaTypeNotAcceptableAdvice extends Exceptional {
     //    final HttpHeaders headers = new HttpHeaders();
     //    headers.setAccept(supportedMediaTypes);
     final String errorKey = ClassUtils.getShortClassName(exception.getClass());
-    final HttpStatus status = HttpStatus.NOT_ACCEPTABLE;
+    final HttpStatus status = resolveStatus(errorKey, HttpStatus.NOT_ACCEPTABLE);
     final String defaultDetail =
         ProblemMessageProvider.getMessage(
             DETAIL_CODE_PREFIX + errorKey,

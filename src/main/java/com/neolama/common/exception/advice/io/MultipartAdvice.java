@@ -12,7 +12,7 @@ public interface MultipartAdvice extends Exceptional {
   @ExceptionHandler
   default ProblemDetails handleMultipart(
       final MultipartException exception, final NativeWebRequest request) {
-    final HttpStatus status = HttpStatus.BAD_REQUEST;
+    final HttpStatus status = resolveStatus(exception, HttpStatus.BAD_REQUEST);
     final ProblemDetails problemDetails = toProblemDetails(exception, status);
     return toResponse(problemDetails, request, exception);
   }

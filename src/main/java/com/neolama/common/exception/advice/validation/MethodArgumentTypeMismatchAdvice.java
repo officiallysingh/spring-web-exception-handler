@@ -15,9 +15,10 @@ public interface MethodArgumentTypeMismatchAdvice extends Exceptional {
   @ExceptionHandler
   default ProblemDetails handleMethodArgumentTypeMismatch(
       final MethodArgumentTypeMismatchException exception, final NativeWebRequest request) {
-    final HttpStatus status = HttpStatus.BAD_REQUEST;
     final String parameterName = exception.getParameter().getParameterName();
     final String exceptionKey = ClassUtils.getShortClassName(exception.getClass());
+    logExceptionKey(exceptionKey);
+    final HttpStatus status = resolveStatus(exceptionKey, HttpStatus.BAD_REQUEST);
     final String parameterPath =
         exception.getParameter().getContainingClass().getSimpleName()
             + DOT

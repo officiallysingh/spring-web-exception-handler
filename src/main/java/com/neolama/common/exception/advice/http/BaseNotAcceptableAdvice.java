@@ -18,10 +18,10 @@ public interface BaseNotAcceptableAdvice extends Exceptional {
       final MediaType causeMediaType,
       final Exception exception,
       final NativeWebRequest request) {
-    final HttpHeaders headers = new HttpHeaders();
-    headers.setAccept(supportedMediaTypes);
+    //    final HttpHeaders headers = new HttpHeaders();
+    //    headers.setAccept(supportedMediaTypes);
     final String errorKey = ClassUtils.getShortClassName(exception.getClass());
-    final HttpStatus status = HttpStatus.UNSUPPORTED_MEDIA_TYPE;
+    final HttpStatus status = resolveStatus(errorKey, HttpStatus.UNSUPPORTED_MEDIA_TYPE);
     final String defaultDetail =
         ProblemMessageProvider.getMessage(
             DETAIL_CODE_PREFIX + errorKey,
