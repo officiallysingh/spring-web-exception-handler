@@ -25,6 +25,7 @@ public class MongoConstraintNameResolver implements ConstraintNameResolver {
     return "mongo.duplicate.key";
   }
 
+  /** {@inheritDoc} */
   @Override
   public Type getType() {
     return Type.MONGO_DB;

@@ -15,8 +15,22 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
+/**
+ * Advice trait that handles {@link MaxUploadSizeExceededException} and returns {@link
+ * ProblemDetails}.
+ *
+ * <p>The status defaults to {@link HttpStatus#BAD_REQUEST}. The maximum size is taken from the
+ * exception or from a nested cause when the exception does not carry it.
+ */
 public interface MaxUploadSizeExceededExceptionAdvice extends Exceptional {
 
+  /**
+   * Handles an upload that exceeded the configured maximum size.
+   *
+   * @param exception the max-upload-size exception
+   * @param request the current web request
+   * @return problem details for the exception
+   */
   @ExceptionHandler
   default ProblemDetails handleMaxUploadSizeExceededException(
       final MaxUploadSizeExceededException exception, final NativeWebRequest request) {

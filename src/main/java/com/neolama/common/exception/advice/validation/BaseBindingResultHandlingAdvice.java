@@ -15,8 +15,17 @@ import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
 
+/** Shared handling that turns a {@link BindingResult} into a list of {@link Problem} violations. */
 public interface BaseBindingResultHandlingAdvice extends Exceptional {
 
+  /**
+   * Converts field and global errors on the binding result into problems.
+   *
+   * @param bindingResult the binding result to read
+   * @param exception the exception being handled, used as the message-source prefix
+   * @param status the HTTP status used when resolving violation codes
+   * @return the field errors followed by the global errors
+   */
   default List<Problem> handleBindingResult(
       final BindingResult bindingResult, final Throwable exception, final HttpStatus status) {
 
@@ -31,6 +40,15 @@ public interface BaseBindingResultHandlingAdvice extends Exceptional {
     return Stream.concat(fieldErrors, globalErrors).toList();
   }
 
+  /**
+   * Converts one field error into a problem, resolving code, message, and detail from the message
+   * source.
+   *
+   * @param fieldError the field error
+   * @param exception the exception being handled, used as the message-source prefix
+   * @param status the HTTP status used when resolving the violation code
+   * @return a problem for the field error
+   */
   default Problem handleFieldError(
       final FieldError fieldError, final Throwable exception, final HttpStatus status) {
     final String prefix = ClassUtils.getShortClassName(exception.getClass());
@@ -56,6 +74,15 @@ public interface BaseBindingResultHandlingAdvice extends Exceptional {
         ProblemMessageProvider.getMessage(detailsResolver));
   }
 
+  /**
+   * Converts one object error into a problem, resolving code, message, and detail from the message
+   * source.
+   *
+   * @param objectError the object error
+   * @param exception the exception being handled, used as the message-source prefix
+   * @param status the HTTP status used when resolving the violation code
+   * @return a problem for the object error
+   */
   default Problem handleObjectError(
       final ObjectError objectError, final Throwable exception, final HttpStatus status) {
     final String prefix = ClassUtils.getShortClassName(exception.getClass());

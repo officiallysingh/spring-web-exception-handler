@@ -10,14 +10,32 @@ import org.springframework.context.MessageSourceResolvable;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
 
+/**
+ * {@link MessageSourceResolvable} that looks up problem text from one or more message codes.
+ *
+ * <p>Factory methods accept raw codes, {@link ObjectError}s, {@link FieldError}s, and {@link
+ * ConstraintViolation}s, prefixing codes so the text can be externalized.
+ */
 public class ProblemMessageSourceResolver implements MessageSourceResolvable, Serializable {
 
+  /** Message codes tried in order. */
   private final String[] codes;
 
+  /** Message used when none of the codes is found in the message source. */
   @Nullable private final String defaultMessage;
 
+  /** Arguments substituted into the resolved message. */
   @Nullable private final Object[] arguments;
 
+  /**
+   * Creates a resolver for the given codes, default message, and arguments.
+   *
+   * @param codes the message codes, in lookup order
+   * @param defaultMessage the message used when no code is found, or {@code null} when there is
+   *     none
+   * @param arguments the arguments substituted into the message, or {@code null} when there are
+   *     none
+   */
   private ProblemMessageSourceResolver(
       final String[] codes, final @Nullable String defaultMessage, Object[] arguments) {
     this.codes = codes;

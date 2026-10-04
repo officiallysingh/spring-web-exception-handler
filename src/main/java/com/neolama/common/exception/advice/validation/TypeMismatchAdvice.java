@@ -10,8 +10,21 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.NativeWebRequest;
 
+/**
+ * Advice trait that handles {@link TypeMismatchException} and returns {@link ProblemDetails}.
+ *
+ * <p>The status defaults to {@link HttpStatus#BAD_REQUEST}. The error key includes the error code
+ * and property name.
+ */
 public interface TypeMismatchAdvice extends Exceptional {
 
+  /**
+   * Handles a property value that could not be converted to the required type.
+   *
+   * @param exception the type-mismatch exception
+   * @param request the current web request
+   * @return problem details for the invalid property
+   */
   @ExceptionHandler
   default ProblemDetails handleTypeMismatch(
       final TypeMismatchException exception, final NativeWebRequest request) {

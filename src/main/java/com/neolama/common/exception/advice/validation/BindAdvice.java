@@ -9,6 +9,12 @@ import org.springframework.validation.BindException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.NativeWebRequest;
 
+/**
+ * Advice trait that handles {@link BindException} and returns {@link ProblemDetails}.
+ *
+ * <p>The status defaults to {@link HttpStatus#BAD_REQUEST}. Binding errors are returned as
+ * violations.
+ */
 public interface BindAdvice extends BaseBindingResultHandlingAdvice {
 
   /**

@@ -19,6 +19,12 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 
+/**
+ * RFC 9457 problem details extended with a code, HTTP method, timestamp, and nested problems.
+ *
+ * <p>Code, title, and detail are resolved from the configured message source when an error key is
+ * supplied. The problem type defaults to {@code about:blank}.
+ */
 @JsonPropertyOrder({
   "type",
   "status",
@@ -36,25 +42,52 @@ import org.springframework.http.ProblemDetail;
 @EqualsAndHashCode(callSuper = true)
 public class ProblemDetails extends ProblemDetail {
 
+  /** Origin reserved for problem type URIs. */
   private static final String TYPE_URL = "http://localhost:8090/";
 
+  /** Problem type used when no more specific type URI is set. */
   private static final URI DEFAULT_TYPE_URL = URI.create("about:blank");
 
+  /** Stable code that identifies this problem. */
   private String code;
 
+  /** HTTP method of the request that produced this problem. */
   @Setter private HttpMethod method;
 
+  /** UTC time at which this problem was created. */
   private OffsetDateTime timestamp;
 
+  /** Field and property violations associated with this problem. */
   private List<Problem> violations;
 
+  /** Nested problems associated with this problem. */
   private List<Problem> errors;
 
+  /**
+   * Creates problem details for an error key and status.
+   *
+   * @param errorKey the message-source key used to resolve code, title, and detail
+   * @param defaultDetail the detail used when no message is configured, or {@code null} for the
+   *     library default
+   * @param status the HTTP status of the problem
+   * @return a new problem details instance
+   */
   public static ProblemDetails of(
       final String errorKey, @Nullable final String defaultDetail, final HttpStatus status) {
     return of(errorKey, defaultDetail, null, status);
   }
 
+  /**
+   * Creates problem details for an error key, status, and detail arguments.
+   *
+   * @param errorKey the message-source key used to resolve code, title, and detail
+   * @param defaultDetail the detail used when no message is configured, or {@code null} for the
+   *     library default
+   * @param detailArgs arguments substituted into the detail message, or {@code null} when the
+   *     detail has none
+   * @param status the HTTP status of the problem
+   * @return a new problem details instance
+   */
   public static ProblemDetails of(
       final String errorKey,
       @Nullable final String defaultDetail,
@@ -75,11 +108,28 @@ public class ProblemDetails extends ProblemDetail {
     return of(status, code, title, detail);
   }
 
+  /**
+   * Creates problem details whose code, title, and detail are taken from the HTTP status.
+   *
+   * @param status the HTTP status of the problem
+   * @return a new problem details instance
+   */
   public static ProblemDetails of(final HttpStatus status) {
     return of(
         status, String.valueOf(status.value()), status.getReasonPhrase(), status.getReasonPhrase());
   }
 
+  /**
+   * Creates problem details from explicit status, code, title, and detail values.
+   *
+   * <p>The timestamp is the current UTC time and the type is {@code about:blank}.
+   *
+   * @param status the HTTP status of the problem
+   * @param code the problem code
+   * @param title the problem title
+   * @param detail the problem detail
+   * @return a new problem details instance
+   */
   public static ProblemDetails of(
       final HttpStatus status, final String code, final String title, final String detail) {
     ProblemDetails problemDetails = new ProblemDetails();
@@ -92,10 +142,20 @@ public class ProblemDetails extends ProblemDetail {
     return problemDetails;
   }
 
+  /**
+   * Replaces the violations with a copy of the given collection.
+   *
+   * @param violations the violations to store
+   */
   public void setViolations(final Collection<Problem> violations) {
     this.violations = violations.stream().toList();
   }
 
+  /**
+   * Replaces the nested errors with a copy of the given collection.
+   *
+   * @param errors the nested problems to store
+   */
   public void setErrors(final Collection<Problem> errors) {
     this.errors = errors.stream().toList();
   }

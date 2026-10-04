@@ -15,6 +15,7 @@ import tools.jackson.databind.module.SimpleSerializers;
 /** Jackson module to serialize and deserialize Problem classes. */
 public final class ProblemModule extends JacksonModule {
 
+  /** HTTP status codes this module can deserialize, indexed by numeric code. */
   private final Map<Integer, HttpStatusCode> statuses;
 
   /**
@@ -40,10 +41,24 @@ public final class ProblemModule extends JacksonModule {
     this(buildIndex(types));
   }
 
+  /**
+   * Constructs a module that deserializes the given status codes.
+   *
+   * @param statuses status codes indexed by numeric value
+   */
   private ProblemModule(final Map<Integer, HttpStatusCode> statuses) {
     this.statuses = statuses;
   }
 
+  /**
+   * Indexes the constants of the given status enums by numeric code.
+   *
+   * <p>The deprecated {@code Checkpoint} status is skipped.
+   *
+   * @param <E> generic enum type that is also an {@link HttpStatusCode}
+   * @param types status type enums
+   * @return an unmodifiable index of status code to status
+   */
   @SafeVarargs
   private static <E extends Enum<?> & HttpStatusCode> Map<Integer, HttpStatusCode> buildIndex(
       final Class<? extends E>... types) {

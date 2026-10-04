@@ -14,11 +14,24 @@ import org.springframework.util.unit.DataSize;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.NativeWebRequest;
 
+/**
+ * Advice trait that handles {@link DataBufferLimitException} and returns {@link ProblemDetails}.
+ *
+ * <p>The status defaults to {@link HttpStatus#BAD_REQUEST}. A size parsed from the exception
+ * message is passed as a detail argument.
+ */
 public interface DataBufferLimitExceptionAdvice extends Exceptional {
 
   //  org.springframework.core.io.buffer.DataBufferLimitException: Part exceeded the disk usage
   // limit of 1024 bytes
 
+  /**
+   * Handles a request that exceeded the configured data-buffer limit.
+   *
+   * @param exception the data-buffer limit exception
+   * @param request the current web request
+   * @return problem details for the exception
+   */
   @ExceptionHandler
   default ProblemDetails handleDataBufferLimitException(
       final DataBufferLimitException exception, final NativeWebRequest request) {

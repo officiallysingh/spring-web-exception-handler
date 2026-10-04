@@ -10,8 +10,22 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
+/**
+ * Advice trait that handles {@link MissingServletRequestPartException} and returns {@link
+ * ProblemDetails}.
+ *
+ * <p>The status defaults to {@link HttpStatus#BAD_REQUEST}. The error key includes the missing part
+ * name.
+ */
 public interface MissingServletRequestPartAdvice extends Exceptional {
 
+  /**
+   * Handles a multipart request that omitted a required part.
+   *
+   * @param exception the missing-part exception
+   * @param request the current web request
+   * @return problem details for the missing part
+   */
   @ExceptionHandler
   default ProblemDetails handleMissingServletRequestPart(
       final MissingServletRequestPartException exception, final NativeWebRequest request) {

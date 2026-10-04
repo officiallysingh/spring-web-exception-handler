@@ -10,6 +10,7 @@ import tools.jackson.databind.deser.std.StdDeserializer;
 /** Jackson deserializer for {@link HttpStatusCode}. */
 final class HttpStatusDeserializer extends StdDeserializer<HttpStatusCode> {
 
+  /** Status codes this deserializer can return, indexed by numeric code. */
   private final Map<Integer, HttpStatusCode> index;
 
   /**

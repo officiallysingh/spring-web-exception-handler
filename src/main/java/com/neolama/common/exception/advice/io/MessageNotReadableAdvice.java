@@ -17,8 +17,22 @@ import org.springframework.web.context.request.NativeWebRequest;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.exc.InvalidFormatException;
 
+/**
+ * Advice trait that handles {@link HttpMessageNotReadableException} and returns {@link
+ * ProblemDetails}.
+ *
+ * <p>Jackson {@link InvalidFormatException} causes are resolved with property-specific error keys.
+ * Other causes default to {@link HttpStatus#BAD_REQUEST}.
+ */
 public interface MessageNotReadableAdvice extends Exceptional {
 
+  /**
+   * Handles a request body that could not be read.
+   *
+   * @param exception the message-not-readable exception
+   * @param request the current web request
+   * @return problem details for the exception
+   */
   @ExceptionHandler
   default ProblemDetails handleMessageNotReadableException(
       final HttpMessageNotReadableException exception, final NativeWebRequest request) {
@@ -33,6 +47,13 @@ public interface MessageNotReadableAdvice extends Exceptional {
     }
   }
 
+  /**
+   * Handles a Jackson value that could not be converted to the target type.
+   *
+   * @param invalidFormatException the invalid-format exception
+   * @param request the current web request
+   * @return problem details resolved from the invalid property path
+   */
   default ProblemDetails handleInvalidFormatException(
       final InvalidFormatException invalidFormatException, final NativeWebRequest request) {
     final String exceptionKey = ClassUtils.getShortClassName(invalidFormatException.getClass());
@@ -69,6 +90,13 @@ public interface MessageNotReadableAdvice extends Exceptional {
     return toResponse(problemDetails, request, invalidFormatException);
   }
 
+  /**
+   * Builds message-source keys for an invalid JSON value, from the most specific property path to
+   * the exception name alone.
+   *
+   * @param invalidFormatException the invalid-format exception
+   * @return candidate error keys, most specific first
+   */
   default String[] deriveInvalidFormatExceptionErrorKeys(
       final InvalidFormatException invalidFormatException) {
     final String errorKey = ClassUtils.getShortClassName(invalidFormatException.getClass());

@@ -1,5 +1,12 @@
 # Guide to exception handling in Spring MVC applications
 
+[![Java](https://img.shields.io/badge/java-21-blue.svg)](https://www.oracle.com/java/technologies/)
+[![Spring Boot](https://img.shields.io/badge/spring_boot-4.1.1-blue.svg)](https://spring.io/projects/spring-boot)
+[![Maven](https://img.shields.io/badge/maven-3.9.x-blue.svg)](https://maven.apache.org/)
+[![Postgres](https://img.shields.io/badge/postgres-latest-blue.svg)](https://www.postgresql.org/)
+[![MongoDB](https://img.shields.io/badge/mongodb-latest-blue.svg)](https://www.mongodb.com/)
+[![Docker](https://img.shields.io/badge/docker-compose-blue.svg)](https://www.docker.com/)
+
 **A library for handling exceptions in Spring MVC (servlet) applications**, implementing
 [**Problem Details (RFC 7807) for HTTP APIs**](https://datatracker.ietf.org/doc/html/rfc7807).
 Requires **Java 21** and **Spring Boot 4.1+** (Jakarta EE 11).

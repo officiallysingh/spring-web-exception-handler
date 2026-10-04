@@ -10,8 +10,22 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.NativeWebRequest;
 
+/**
+ * Advice trait that handles {@link MissingServletRequestParameterException} and returns {@link
+ * ProblemDetails}.
+ *
+ * <p>The status defaults to {@link HttpStatus#BAD_REQUEST}. The error key includes the missing
+ * parameter name.
+ */
 public interface MissingServletRequestParameterAdvice extends Exceptional {
 
+  /**
+   * Handles a request that omitted a required parameter.
+   *
+   * @param exception the missing-parameter exception
+   * @param request the current web request
+   * @return problem details for the missing parameter
+   */
   @ExceptionHandler
   default ProblemDetails handleMissingServletRequestParameter(
       final MissingServletRequestParameterException exception, final NativeWebRequest request) {

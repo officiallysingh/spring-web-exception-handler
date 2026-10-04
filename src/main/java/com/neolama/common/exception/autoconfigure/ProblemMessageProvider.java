@@ -4,8 +4,14 @@ import org.springframework.context.MessageSource;
 import org.springframework.context.MessageSourceResolvable;
 import org.springframework.context.i18n.LocaleContextHolder;
 
+/**
+ * Resolves problem messages from the application {@link MessageSource} for the current locale.
+ *
+ * <p>A bean of this type must be created before the static lookup methods are used.
+ */
 public class ProblemMessageProvider {
 
+  /** Message source used by the static lookup methods. */
   private static MessageSource messageSource;
 
   /**

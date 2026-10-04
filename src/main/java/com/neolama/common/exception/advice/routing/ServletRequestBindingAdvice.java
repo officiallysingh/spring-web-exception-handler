@@ -7,8 +7,21 @@ import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.NativeWebRequest;
 
+/**
+ * Advice trait that handles {@link ServletRequestBindingException} and returns {@link
+ * ProblemDetails}.
+ *
+ * <p>The status defaults to {@link HttpStatus#BAD_REQUEST}.
+ */
 public interface ServletRequestBindingAdvice extends Exceptional {
 
+  /**
+   * Handles a failure while binding the servlet request.
+   *
+   * @param exception the request-binding exception
+   * @param request the current web request
+   * @return problem details for the exception
+   */
   @ExceptionHandler
   default ProblemDetails handleServletRequestBinding(
       final ServletRequestBindingException exception, final NativeWebRequest request) {

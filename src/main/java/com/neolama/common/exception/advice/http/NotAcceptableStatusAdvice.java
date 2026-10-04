@@ -7,8 +7,21 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.server.NotAcceptableStatusException;
 
+/**
+ * Advice trait that handles {@link NotAcceptableStatusException} and returns {@link
+ * ProblemDetails}.
+ *
+ * <p>The status defaults to {@link HttpStatus#NOT_ACCEPTABLE}.
+ */
 public interface NotAcceptableStatusAdvice extends Exceptional {
 
+  /**
+   * Handles a reactive request that cannot produce an acceptable response.
+   *
+   * @param exception the not-acceptable exception
+   * @param request the current web request
+   * @return problem details for the exception
+   */
   @ExceptionHandler
   default ProblemDetails handleMediaTypeNotAcceptable(
       final NotAcceptableStatusException exception, final NativeWebRequest request) {

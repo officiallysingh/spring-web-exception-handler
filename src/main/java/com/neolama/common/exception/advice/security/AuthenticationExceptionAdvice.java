@@ -7,8 +7,20 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.NativeWebRequest;
 
+/**
+ * Advice trait that handles {@link AuthenticationException} and returns {@link ProblemDetails}.
+ *
+ * <p>The status defaults to {@link HttpStatus#UNAUTHORIZED}.
+ */
 public interface AuthenticationExceptionAdvice extends Exceptional {
 
+  /**
+   * Handles a failed authentication.
+   *
+   * @param exception the authentication exception
+   * @param request the current web request
+   * @return problem details for the exception
+   */
   @ExceptionHandler
   default ProblemDetails handleAuthenticationException(
       final AuthenticationException exception, final NativeWebRequest request) {

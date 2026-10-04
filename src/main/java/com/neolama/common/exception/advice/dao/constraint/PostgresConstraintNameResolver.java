@@ -1,5 +1,8 @@
 package com.neolama.common.exception.advice.dao.constraint;
 
+/**
+ * {@link ConstraintNameResolver} that reads a constraint name from a PostgreSQL exception message.
+ */
 public class PostgresConstraintNameResolver implements ConstraintNameResolver {
 
   /** {@inheritDoc} */
@@ -15,6 +18,7 @@ public class PostgresConstraintNameResolver implements ConstraintNameResolver {
     return "postgres.duplicate.key";
   }
 
+  /** {@inheritDoc} */
   @Override
   public Type getType() {
     return Type.POSTGRESQL;

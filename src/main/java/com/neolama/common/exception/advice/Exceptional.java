@@ -20,16 +20,40 @@ import org.springframework.web.context.request.NativeWebRequest;
  */
 public interface Exceptional {
 
+  /** Shared logger for advice traits. */
   Logger logger = LoggerFactory.getLogger(Exceptional.class);
 
+  /** Banner written before a logged exception key. */
   String EXCEPTION_KEY_LOG_START = "---------------------- Exception Key ----------------------";
+
+  /** Banner written before logged error keys. */
   String ERROR_KEYS_LOG_START = "---------------------- Error Keys ----------------------";
+
+  /** Banner written after logged exception or error keys. */
   String KEYS_LOG_END = "--------------------------------------------------------";
 
+  /**
+   * Resolves the HTTP status for the given throwable.
+   *
+   * <p>Uses {@link HttpStatus#INTERNAL_SERVER_ERROR} when no more specific status can be resolved.
+   *
+   * @param throwable the throwable whose status is resolved
+   * @return the resolved HTTP status
+   */
   default HttpStatus resolveStatus(final Throwable throwable) {
     return resolveStatus(throwable, HttpStatus.INTERNAL_SERVER_ERROR);
   }
 
+  /**
+   * Resolves the HTTP status for the given throwable.
+   *
+   * <p>Looks up a configured status for the throwable's simple class name, then falls back to a
+   * status derived from the throwable and finally {@code defaultStatus}.
+   *
+   * @param throwable the throwable whose status is resolved
+   * @param defaultStatus the status used when no configured status applies
+   * @return the resolved HTTP status
+   */
   default HttpStatus resolveStatus(final Throwable throwable, final HttpStatus defaultStatus) {
     final HttpStatus defStatus = ProblemUtils.resolveStatus(throwable).orElse(defaultStatus);
     final String errorKey = ClassUtils.getShortClassName(throwable.getClass());
@@ -45,6 +69,13 @@ public interface Exceptional {
     }
   }
 
+  /**
+   * Resolves the HTTP status configured for the given error key.
+   *
+   * @param errorKey the message-source key suffix used to look up a status code
+   * @param defaultStatus the status used when no status is configured or the lookup fails
+   * @return the resolved HTTP status
+   */
   default HttpStatus resolveStatus(final String errorKey, final HttpStatus defaultStatus) {
     try {
       final String statusCode =
@@ -58,27 +89,66 @@ public interface Exceptional {
     }
   }
 
+  /**
+   * Converts the throwable into problem details, resolving the HTTP status from the throwable.
+   *
+   * @param throwable the throwable to convert
+   * @return problem details for the throwable
+   */
   default ProblemDetails toProblemDetails(final Throwable throwable) {
     final HttpStatus status = resolveStatus(throwable);
     return toProblemDetails(throwable, status);
   }
 
+  /**
+   * Converts the throwable into problem details with the given status.
+   *
+   * @param throwable the throwable to convert
+   * @param status the HTTP status of the problem
+   * @return problem details for the throwable
+   */
   default ProblemDetails toProblemDetails(final Throwable throwable, final HttpStatus status) {
     return toProblemDetails(throwable, status, throwable.getMessage());
   }
 
+  /**
+   * Converts the throwable into problem details with the given status and fallback detail.
+   *
+   * @param throwable the throwable to convert
+   * @param status the HTTP status of the problem
+   * @param defaultDetail the detail used when no message is configured for the throwable
+   * @return problem details for the throwable
+   */
   default ProblemDetails toProblemDetails(
       final Throwable throwable, final HttpStatus status, final String defaultDetail) {
     final String errorKey = ClassUtils.getShortClassName(throwable.getClass());
     return toProblemDetails(errorKey, status, defaultDetail);
   }
 
+  /**
+   * Builds problem details for an error key, logging the key before resolution.
+   *
+   * @param errorKey the message-source key used to resolve code, title, and detail
+   * @param status the HTTP status of the problem
+   * @param defaultDetail the detail used when no message is configured for {@code errorKey}
+   * @return problem details for the error key
+   */
   default ProblemDetails toProblemDetails(
       final String errorKey, final HttpStatus status, final String defaultDetail) {
     logErrorKey(errorKey);
     return ProblemDetails.of(errorKey, defaultDetail, status);
   }
 
+  /**
+   * Completes problem details for the current request and logs the throwable.
+   *
+   * <p>Sets the request URI as the problem instance and the HTTP method on the details.
+   *
+   * @param problemDetails the problem details to complete
+   * @param request the current web request
+   * @param throwable the throwable being handled
+   * @return the completed problem details
+   */
   default @NonNull ProblemDetails toResponse(
       final ProblemDetails problemDetails,
       final NativeWebRequest request,
@@ -90,10 +160,22 @@ public interface Exceptional {
     return problemDetails;
   }
 
+  /**
+   * Returns the request URI of the native servlet request.
+   *
+   * @param request the current web request
+   * @return the request URI
+   */
   default URI requestUri(final NativeWebRequest request) {
     return URI.create(request.getNativeRequest(HttpServletRequest.class).getRequestURI());
   }
 
+  /**
+   * Returns the HTTP method of the native servlet request.
+   *
+   * @param request the current web request
+   * @return the HTTP method
+   */
   default HttpMethod requestMethod(final NativeWebRequest request) {
     return HttpMethod.valueOf(request.getNativeRequest(HttpServletRequest.class).getMethod());
   }
@@ -125,6 +207,11 @@ public interface Exceptional {
   // }
   // }
 
+  /**
+   * Logs an exception key at trace level.
+   *
+   * @param exceptionKey the exception key to log
+   */
   default void logExceptionKey(final String exceptionKey) {
     logger.trace(
         "{}{}{}",
@@ -133,6 +220,11 @@ public interface Exceptional {
         exceptionKey + System.lineSeparator() + KEYS_LOG_END);
   }
 
+  /**
+   * Logs a single error key at trace level.
+   *
+   * @param errorKey the error key to log
+   */
   default void logErrorKey(final String errorKey) {
     logger.trace(
         "{}{}{}",
@@ -141,6 +233,11 @@ public interface Exceptional {
         errorKey + System.lineSeparator() + KEYS_LOG_END);
   }
 
+  /**
+   * Logs several error keys at trace level.
+   *
+   * @param errorKeys the error keys to log
+   */
   default void logErrorKeys(final String[] errorKeys) {
     logger.trace(
         "{}\n{}\n{}",

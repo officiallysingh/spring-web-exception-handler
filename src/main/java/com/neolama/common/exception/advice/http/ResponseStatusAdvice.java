@@ -7,8 +7,20 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.server.ResponseStatusException;
 
+/**
+ * Advice trait that handles {@link ResponseStatusException} and returns {@link ProblemDetails}.
+ *
+ * <p>The status is taken from the exception.
+ */
 public interface ResponseStatusAdvice extends Exceptional {
 
+  /**
+   * Handles a response-status exception.
+   *
+   * @param exception the response-status exception
+   * @param request the current web request
+   * @return problem details for the exception
+   */
   @ExceptionHandler
   default ProblemDetails handleResponseStatusException(
       final ResponseStatusException exception, final NativeWebRequest request) {

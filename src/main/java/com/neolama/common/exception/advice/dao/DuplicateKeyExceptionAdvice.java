@@ -9,8 +9,20 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.NativeWebRequest;
 
+/**
+ * Advice trait that handles {@link DuplicateKeyException} and returns {@link ProblemDetails}.
+ *
+ * <p>The error key is the exception simple name plus the resolved constraint name.
+ */
 public interface DuplicateKeyExceptionAdvice extends BaseDataIntegrityAdvice {
 
+  /**
+   * Handles a duplicate-key violation.
+   *
+   * @param exception the duplicate-key violation
+   * @param request the current web request
+   * @return problem details for the violation
+   */
   @ExceptionHandler
   default ProblemDetails handleDuplicateKeyException(
       final DuplicateKeyException exception, final NativeWebRequest request) {

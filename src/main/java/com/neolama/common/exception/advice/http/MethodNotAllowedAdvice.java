@@ -15,8 +15,20 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.server.MethodNotAllowedException;
 
+/**
+ * Advice trait that handles {@link MethodNotAllowedException} and returns {@link ProblemDetails}.
+ *
+ * <p>The status defaults to {@link HttpStatus#METHOD_NOT_ALLOWED}.
+ */
 public interface MethodNotAllowedAdvice extends Exceptional {
 
+  /**
+   * Handles a reactive request whose HTTP method is not allowed.
+   *
+   * @param exception the method-not-allowed exception
+   * @param request the current web request
+   * @return problem details listing the requested and allowed methods
+   */
   @ExceptionHandler
   default ProblemDetails handleMethodNotAllowedException(
       final MethodNotAllowedException exception, final NativeWebRequest request) {

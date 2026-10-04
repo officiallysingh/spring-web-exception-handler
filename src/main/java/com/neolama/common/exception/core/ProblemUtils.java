@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
+/** Helpers for HTTP status lookup, stack traces, and problem-code formatting. */
 @UtilityClass
 public class ProblemUtils {
 
@@ -115,6 +116,14 @@ public class ProblemUtils {
     return escapedStacktrace.toString();
   }
 
+  /**
+   * Converts a camel-case value into a lower-case, hyphen-separated problem code.
+   *
+   * <p>A trailing {@code Exception} segment is removed.
+   *
+   * @param value the value to convert, typically an exception simple class name
+   * @return the problem code
+   */
   public static String getProblemCode(final String value) {
     return value
         .replaceAll("([a-z0-9])([A-Z])", "$1-$2")
@@ -123,6 +132,12 @@ public class ProblemUtils {
         .replaceFirst("-exception$", "");
   }
 
+  /**
+   * Converts an HTTP status name into a lower-case, hyphen-separated problem code.
+   *
+   * @param status the HTTP status
+   * @return the problem code
+   */
   public static String getProblemCode(final HttpStatus status) {
     return status.name().toLowerCase().replace('_', '-');
   }

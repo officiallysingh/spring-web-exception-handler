@@ -15,8 +15,22 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.NativeWebRequest;
 
+/**
+ * Advice trait that handles {@link ConstraintViolationException} and returns {@link
+ * ProblemDetails}.
+ *
+ * <p>The status defaults to {@link HttpStatus#BAD_REQUEST}. Each constraint violation is returned
+ * as a problem.
+ */
 public interface ConstraintViolationAdvice extends Exceptional {
 
+  /**
+   * Handles a constraint-violation exception.
+   *
+   * @param exception the constraint-violation exception
+   * @param request the current web request
+   * @return problem details whose violations describe each failed constraint
+   */
   @ExceptionHandler
   default ProblemDetails handleConstraintViolationException(
       final ConstraintViolationException exception, final NativeWebRequest request) {
@@ -32,6 +46,15 @@ public interface ConstraintViolationAdvice extends Exceptional {
     return toResponse(problemDetails, request, exception);
   }
 
+  /**
+   * Converts one constraint violation into a problem, resolving code, message, and detail from the
+   * message source.
+   *
+   * @param violation the constraint violation
+   * @param exception the exception being handled, used as the message-source prefix
+   * @param status the HTTP status used when resolving the violation code
+   * @return a problem for the constraint violation
+   */
   default Problem handleConstraintViolation(
       final ConstraintViolation<?> violation,
       final ConstraintViolationException exception,

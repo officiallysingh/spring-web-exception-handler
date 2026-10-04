@@ -10,6 +10,12 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * Registers database-specific {@link ConstraintNameResolver} beans when the matching driver is
+ * present.
+ *
+ * <p>Active when {@code problem.dao-advice-enabled} is {@code true} or unset.
+ */
 @Configuration
 @ConditionalOnProperty(
     prefix = "problem",

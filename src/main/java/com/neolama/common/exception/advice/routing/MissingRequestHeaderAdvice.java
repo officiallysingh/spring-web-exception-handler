@@ -10,8 +10,22 @@ import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.NativeWebRequest;
 
+/**
+ * Advice trait that handles {@link MissingRequestHeaderException} and returns {@link
+ * ProblemDetails}.
+ *
+ * <p>The status defaults to {@link HttpStatus#BAD_REQUEST}. The error key includes the controller,
+ * handler method, and header name.
+ */
 public interface MissingRequestHeaderAdvice extends Exceptional {
 
+  /**
+   * Handles a request that omitted a required header.
+   *
+   * @param exception the missing-header exception
+   * @param request the current web request
+   * @return problem details for the missing header
+   */
   @ExceptionHandler
   default ProblemDetails handleMissingServletRequestParameter(
       final MissingRequestHeaderException exception, final NativeWebRequest request) {

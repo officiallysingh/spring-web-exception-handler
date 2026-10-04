@@ -11,8 +11,23 @@ import org.springframework.http.*;
 import org.springframework.util.MimeTypeUtils;
 import org.springframework.web.context.request.NativeWebRequest;
 
+/**
+ * Shared handling for requests whose media type is not supported.
+ *
+ * <p>The status defaults to {@link HttpStatus#UNSUPPORTED_MEDIA_TYPE}.
+ */
 public interface BaseNotAcceptableAdvice extends Exceptional {
 
+  /**
+   * Builds problem details listing the media type that was rejected and the types that are
+   * supported.
+   *
+   * @param supportedMediaTypes the media types the endpoint accepts
+   * @param causeMediaType the media type that was rejected
+   * @param exception the exception being handled
+   * @param request the current web request
+   * @return problem details for the unsupported media type
+   */
   default ProblemDetails processMediaTypeNotSupportedException(
       final List<MediaType> supportedMediaTypes,
       final MediaType causeMediaType,

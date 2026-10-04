@@ -14,6 +14,12 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+/**
+ * Controller advice that turns data-integrity and duplicate-key failures into problem details.
+ *
+ * <p>Selects a {@link ConstraintNameResolver} from the exception message. Enabled when {@code
+ * problem.dao-advice-enabled} is {@code true} or unset.
+ */
 @Configuration
 @ConditionalOnProperty(
     prefix = "problem",
@@ -24,8 +30,14 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class WebDaoExceptionHandler implements DaoAdvice {
 
+  /** Resolvers indexed by the database they support. */
   protected final Map<ConstraintNameResolver.Type, ConstraintNameResolver> constraintNameResolvers;
 
+  /**
+   * Creates a handler that indexes the given constraint-name resolvers by database type.
+   *
+   * @param constraintNameResolvers the resolvers to consult, possibly empty
+   */
   protected WebDaoExceptionHandler(final List<ConstraintNameResolver> constraintNameResolvers) {
     if (CollectionUtils.isNotEmpty(constraintNameResolvers)) {
       this.constraintNameResolvers =
