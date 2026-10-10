@@ -5,7 +5,6 @@ import static com.neolama.common.exception.core.ProblemConstant.*;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.neolama.common.exception.autoconfigure.ProblemMessageProvider;
-import java.net.URI;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.Collection;
@@ -44,9 +43,6 @@ public class ProblemDetails extends ProblemDetail {
 
   /** Origin reserved for problem type URIs. */
   private static final String TYPE_URL = "http://localhost:8090/";
-
-  /** Problem type used when no more specific type URI is set. */
-  private static final URI DEFAULT_TYPE_URL = URI.create("about:blank");
 
   /** Stable code that identifies this problem. */
   private String code;

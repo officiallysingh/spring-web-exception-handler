@@ -1,10 +1,14 @@
 package com.neolama.common.exception.core;
 
+import java.net.URI;
 import lombok.experimental.UtilityClass;
 
 /** Message-source prefixes, JSON property names, and fallback problem text. */
 @UtilityClass
 public class ProblemConstant {
+
+  /** Problem type used when no more specific type URI is set. */
+  public static final URI DEFAULT_TYPE_URL = URI.create("about:blank");
 
   /** JSON property name for the problem code. */
   public static final String CODE_KEY = "code";

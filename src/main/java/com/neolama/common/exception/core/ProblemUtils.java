@@ -117,15 +117,15 @@ public class ProblemUtils {
   }
 
   /**
-   * Converts a camel-case value into a lower-case, hyphen-separated problem code.
+   * Converts a camel-case errorKey into a lower-case, hyphen-separated problem code.
    *
    * <p>A trailing {@code Exception} segment is removed.
    *
-   * @param value the value to convert, typically an exception simple class name
+   * @param errorKey the errorKey to convert, typically an exception simple class name
    * @return the problem code
    */
-  public static String getProblemCode(final String value) {
-    return value
+  public static String getProblemCode(final String errorKey) {
+    return errorKey
         .replaceAll("([a-z0-9])([A-Z])", "$1-$2")
         .replaceAll("([A-Z]+)([A-Z][a-z])", "$1-$2")
         .toLowerCase()
