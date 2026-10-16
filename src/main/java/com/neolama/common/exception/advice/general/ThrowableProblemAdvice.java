@@ -20,7 +20,7 @@ public interface ThrowableProblemAdvice extends Exceptional {
    * @return the problem details carried by {@code exception}
    */
   @ExceptionHandler
-  default ProblemDetails handleApplicationException(
+  default ProblemDetails handleThrowableProblem(
       final ThrowableProblem exception, final NativeWebRequest request) {
     final ProblemDetails problemDetails = exception.getProblemDetails();
     return toResponse(problemDetails, request, exception);
