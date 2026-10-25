@@ -5,14 +5,12 @@ import com.neolama.common.exception.advice.security.ProblemAuthenticationEntryPo
 import com.neolama.common.exception.advice.security.SecurityAdvice;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.core.Ordered;
-import org.springframework.core.annotation.Order;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -25,8 +23,12 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
  * <p>Also registers an {@link AuthenticationEntryPoint} and an {@link AccessDeniedHandler} that
  * delegate to the MVC exception resolver. Enabled in servlet web applications when Spring Security
  * is on the classpath and {@code problem.security-advice-enabled} is {@code true} or unset.
+ *
+ * <p>Has default precedence, so an application's own advice for the same exceptions wins. Ordered
+ * before {@link WebExceptionHandler}, whose {@code Throwable} fallback would otherwise catch these
+ * exceptions first.
  */
-@Configuration
+@AutoConfiguration(before = WebExceptionHandler.class)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnProperty(
     prefix = "problem",
@@ -34,7 +36,6 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
     havingValue = "true",
     matchIfMissing = true)
 @ConditionalOnClass(value = {SecurityAutoConfiguration.class})
-@Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice
 @RequiredArgsConstructor
 public class WebSecurityExceptionHandler implements SecurityAdvice {

@@ -5,8 +5,8 @@ import com.neolama.common.exception.advice.http.HttpAdvice;
 import com.neolama.common.exception.advice.io.IOAdvice;
 import com.neolama.common.exception.advice.routing.RoutingAdvice;
 import com.neolama.common.exception.advice.validation.ValidationAdvice;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /**
@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  *
  * <p>Enabled in servlet web applications.
  */
-@Configuration
+@AutoConfiguration
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @RestControllerAdvice
 public class WebExceptionHandler

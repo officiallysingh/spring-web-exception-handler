@@ -5,12 +5,10 @@ import com.neolama.common.exception.advice.dao.constraint.ConstraintNameResolver
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.core.Ordered;
-import org.springframework.core.annotation.Order;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -22,8 +20,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  * source get the exception simple name as error key. Enabled in servlet web applications that have
  * {@code spring-tx} on the classpath, when {@code problem.dao-advice-enabled} is {@code true} or
  * unset.
+ *
+ * <p>Has default precedence, so an application's own advice for the same exceptions wins. Ordered
+ * before {@link WebExceptionHandler}, whose {@code Throwable} fallback would otherwise catch these
+ * exceptions first.
  */
-@Configuration
+@AutoConfiguration(before = WebExceptionHandler.class)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnClass(DataIntegrityViolationException.class)
 @ConditionalOnProperty(
@@ -31,7 +33,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
     name = "dao-advice-enabled",
     havingValue = "true",
     matchIfMissing = true)
-@Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice
 public class WebDaoExceptionHandler implements DaoAdvice {
 
