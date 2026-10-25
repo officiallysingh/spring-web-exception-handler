@@ -66,8 +66,8 @@ your application decides which ones, and which versions, it uses.
 
 ## Installation
 
-> **Current version: 0.0.1-SNAPSHOT.** Until a release is published, build and install it into your
-> local Maven repository with `./mvnw install`.
+> **Current version: 1.0.0-rc2**, available from
+> [Maven Central](https://central.sonatype.com/artifact/com.neolama/spring-web-exception-handler).
 
 Maven
 
@@ -75,14 +75,14 @@ Maven
 <dependency>
     <groupId>com.neolama</groupId>
     <artifactId>spring-web-exception-handler</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>1.0.0-rc2</version>
 </dependency>
 ```
 
 Gradle
 
 ```groovy
-implementation 'com.neolama:spring-web-exception-handler:0.0.1-SNAPSHOT'
+implementation 'com.neolama:spring-web-exception-handler:1.0.0-rc2'
 ```
 
 Spring Boot auto-configuration registers everything. There is no annotation to add.
@@ -626,27 +626,34 @@ The log line keeps the exception message that the 5xx response hides.
 
 ## Testing your application
 
-`@SpringBootTest` applies the library like a running application, with no extra setup.
-
-`@WebMvcTest` loads only Spring MVC's own auto-configurations, so without extra setup exceptions
-escape your test instead of becoming problem responses. Import the library's auto-configurations
-your test needs:
+`@SpringBootTest` and `@WebMvcTest` both apply the library with no extra setup, so exceptions in your
+controller tests become the same problem responses as in the running application:
 
 ```java
 @WebMvcTest(EmployeeController.class)
-@ImportAutoConfiguration({ProblemConfiguration.class, WebExceptionHandler.class})
 class EmployeeControllerTest {
 
   @Autowired private MockMvc mockMvc;
 
   @MockitoBean private EmployeeService employeeService;
 
-  // ...
+  @Test
+  void unknownEmployeeIs404() throws Exception {
+    given(this.employeeService.find(42)).willThrow(
+        Problems.of(AppErrors.EMPLOYEE_NOT_FOUND).detailArgs(42).throwAble());
+
+    this.mockMvc.perform(get("/api/employees/42"))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("employee-not-found"));
+  }
 }
 ```
 
-Add `WebDaoExceptionHandler.class` and `DatabaseConstraintResolverConfiguration.class` for database
-errors, and `WebSecurityExceptionHandler.class` for security errors.
+The library registers its auto-configurations for `@WebMvcTest` in
+[`AutoConfigureWebMvc.imports`](src/main/resources/META-INF/spring/org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureWebMvc.imports).
+The usual conditions still apply: database handling needs `spring-tx`, security handling needs Spring
+Security, and the `problem.*` properties turn them off. To leave the library out of a slice test, use
+`@WebMvcTest(excludeAutoConfiguration = WebExceptionHandler.class)`.
 
 `Problems` also works in plain unit tests without Spring: problems then get the Java defaults, since
 no message bundle is loaded.
