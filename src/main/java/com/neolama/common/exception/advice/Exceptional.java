@@ -36,6 +36,12 @@ public interface Exceptional {
   /** Banner written after logged exception or error keys. */
   String KEYS_LOG_END = "--------------------------------------------------------";
 
+  /** Format of a logged key block: start banner, line break, keys, line break, end banner. */
+  String KEYS_LOG_FORMAT = "{}{}{}{}{}";
+
+  /** Format of a logged problem: method, path, status, code, exception name, exception message. */
+  String PROBLEM_LOG_FORMAT = "{} {} — {} {}: {}: {}";
+
   /**
    * Resolves the HTTP status for the given throwable.
    *
@@ -205,7 +211,7 @@ public interface Exceptional {
     //    problemDetails.setType(typeUri(request, problemDetails.getCode()));
     problemDetails.setInstance(requestUri(request));
     problemDetails.setMethod(requestMethod(request));
-    log(throwable, HttpStatus.valueOf(problemDetails.getStatus()));
+    log(throwable, problemDetails);
     return problemDetails;
   }
 
@@ -238,23 +244,43 @@ public interface Exceptional {
   //  }
 
   /**
-   * Logs the throwable and status.
+   * Logs the throwable for the problem it was turned into.
+   *
+   * <p>A server error is logged at error level with its stack trace. Any other status, typically a
+   * client error, is logged as a single warn line; its stack trace is logged at debug level.
    *
    * @param throwable the throwable
-   * @param status the HTTP status
+   * @param problemDetails the problem details sent to the client, with method and instance set
    */
-  default void log(final Throwable throwable, final HttpStatus status) {
-    logger.error(status.getReasonPhrase(), throwable);
-    // throwable.printStackTrace();
+  default void log(final Throwable throwable, final ProblemDetails problemDetails) {
+    final int status = problemDetails.getStatus();
+    final String exceptionName = ClassUtils.getShortClassName(throwable.getClass());
+    if (HttpStatusCode.valueOf(status).is5xxServerError()) {
+      logger.error(
+          PROBLEM_LOG_FORMAT,
+          problemDetails.getMethod(),
+          problemDetails.getInstance(),
+          status,
+          problemDetails.getCode(),
+          exceptionName,
+          throwable.getMessage(),
+          throwable);
+    } else {
+      logger.warn(
+          PROBLEM_LOG_FORMAT,
+          problemDetails.getMethod(),
+          problemDetails.getInstance(),
+          status,
+          problemDetails.getCode(),
+          exceptionName,
+          throwable.getMessage());
+      logger.debug(
+          "Stack trace for {} {}",
+          problemDetails.getMethod(),
+          problemDetails.getInstance(),
+          throwable);
+    }
   }
-
-  // default void log(final Throwable throwable, final HttpStatus status) {
-  // if (status.is4xxClientError()) {
-  // logger.warn("{}: {}", status.getReasonPhrase(), throwable.getMessage());
-  // } else if (status.is5xxServerError()) {
-  // logger.error(status.getReasonPhrase(), throwable);
-  // }
-  // }
 
   /**
    * Logs an exception key at trace level.
@@ -263,10 +289,12 @@ public interface Exceptional {
    */
   default void logExceptionKey(final String exceptionKey) {
     logger.trace(
-        "{}{}{}",
+        KEYS_LOG_FORMAT,
         EXCEPTION_KEY_LOG_START,
         System.lineSeparator(),
-        exceptionKey + System.lineSeparator() + KEYS_LOG_END);
+        exceptionKey,
+        System.lineSeparator(),
+        KEYS_LOG_END);
   }
 
   /**
@@ -276,10 +304,12 @@ public interface Exceptional {
    */
   default void logErrorKey(final String errorKey) {
     logger.trace(
-        "{}{}{}",
+        KEYS_LOG_FORMAT,
         ERROR_KEYS_LOG_START,
         System.lineSeparator(),
-        errorKey + System.lineSeparator() + KEYS_LOG_END);
+        errorKey,
+        System.lineSeparator(),
+        KEYS_LOG_END);
   }
 
   /**
@@ -288,10 +318,14 @@ public interface Exceptional {
    * @param errorKeys the error keys to log
    */
   default void logErrorKeys(final String[] errorKeys) {
-    logger.trace(
-        "{}\n{}\n{}",
-        ERROR_KEYS_LOG_START,
-        String.join(System.lineSeparator(), errorKeys),
-        KEYS_LOG_END);
+    if (logger.isTraceEnabled()) {
+      logger.trace(
+          KEYS_LOG_FORMAT,
+          ERROR_KEYS_LOG_START,
+          System.lineSeparator(),
+          String.join(System.lineSeparator(), errorKeys),
+          System.lineSeparator(),
+          KEYS_LOG_END);
+    }
   }
 }
