@@ -2,7 +2,6 @@ package com.neolama.common.exception.core;
 
 import static org.springframework.core.annotation.AnnotatedElementUtils.findMergedAnnotation;
 
-import jakarta.annotation.Nullable;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.CharacterIterator;
@@ -12,6 +11,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -64,9 +64,8 @@ public class ProblemUtils {
    * @param type the throwable type
    * @return the response status annotation, or {@code null} if not found
    */
-  public static ResponseStatus resolveResponseStatus(final Throwable type) {
+  public static @Nullable ResponseStatus resolveResponseStatus(final Throwable type) {
 
-    @Nullable
     final ResponseStatus candidate = findMergedAnnotation(type.getClass(), ResponseStatus.class);
     return candidate == null && type.getCause() != null
         ? resolveResponseStatus(type.getCause())
@@ -138,7 +137,7 @@ public class ProblemUtils {
    *     long}
    * @return the first number in the text, or {@code defaultValue}
    */
-  public static long firstNumber(@Nullable final String text, final long defaultValue) {
+  public static long firstNumber(final @Nullable String text, final long defaultValue) {
     if (text == null) {
       return defaultValue;
     }
@@ -162,7 +161,7 @@ public class ProblemUtils {
    *     long}
    * @return the last number in the text, or {@code defaultValue}
    */
-  public static long lastNumber(@Nullable final String text, final long defaultValue) {
+  public static long lastNumber(final @Nullable String text, final long defaultValue) {
     if (text == null) {
       return defaultValue;
     }

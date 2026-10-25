@@ -2,7 +2,6 @@ package com.neolama.common.exception.advice.http;
 
 import com.neolama.common.exception.advice.Exceptional;
 import com.neolama.common.exception.core.ProblemDetails;
-import jakarta.annotation.Nullable;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.commons.collections4.CollectionUtils;
@@ -29,7 +28,7 @@ public interface MethodNotAllowedAdvice extends Exceptional {
   @ExceptionHandler
   default ProblemDetails handleMethodNotAllowedException(
       final MethodNotAllowedException exception, final NativeWebRequest request) {
-    @Nullable final Set<HttpMethod> methods = exception.getSupportedMethods();
+    final Set<HttpMethod> methods = exception.getSupportedMethods();
     final String requestedMethod = exception.getHttpMethod();
     final String allowedMethods =
         CollectionUtils.isEmpty(methods)

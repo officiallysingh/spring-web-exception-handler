@@ -3,13 +3,13 @@ package com.neolama.common.exception.core;
 import static com.neolama.common.exception.core.ProblemConstant.*;
 
 import com.neolama.common.exception.autoconfigure.ProblemMessageProvider;
-import jakarta.annotation.Nullable;
 import java.util.*;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpStatus;
 import org.springframework.util.Assert;
 
@@ -87,7 +87,7 @@ public class Problems {
      * @param detail the default detail
      * @return the next step in the builder
      */
-    DetailArgsBuilder defaultDetail(@Nullable final String detail);
+    DetailArgsBuilder defaultDetail(final @Nullable String detail);
   }
 
   /** Builder step for setting message arguments and the cause. */
@@ -99,7 +99,7 @@ public class Problems {
      * @param args the message arguments, or {@code null} when the detail has none
      * @return the next step in the builder
      */
-    CauseBuilder detailArgs(@Nullable final Object... args);
+    CauseBuilder detailArgs(final Object @Nullable ... args);
   }
 
   /** Builder step for setting the cause of the exception. */
@@ -111,7 +111,7 @@ public class Problems {
      * @param cause the cause, or {@code null} when there is none
      * @return the next step in the builder
      */
-    ParameterBuilder cause(@Nullable final Throwable cause);
+    ParameterBuilder cause(final @Nullable Throwable cause);
   }
 
   /** Builder step for setting additional parameters. */
@@ -134,7 +134,7 @@ public class Problems {
      * @param parameters the parameters
      * @return this builder
      */
-    ProblemBuildable parameters(@Nullable final Map<String, Object> parameters);
+    ProblemBuildable parameters(final @Nullable Map<String, Object> parameters);
   }
 
   /** Final builder step that creates the exception. */
@@ -220,14 +220,14 @@ public class Problems {
 
     /** {@inheritDoc} */
     @Override
-    public DetailArgsBuilder defaultDetail(@Nullable String detail) {
+    public DetailArgsBuilder defaultDetail(final @Nullable String detail) {
       this.defaultDetail = detail;
       return this;
     }
 
     /** {@inheritDoc} */
     @Override
-    public CauseBuilder detailArgs(final @Nullable Object... args) {
+    public CauseBuilder detailArgs(final Object @Nullable ... args) {
       this.detailsArgs = args;
       return this;
     }
@@ -250,7 +250,7 @@ public class Problems {
 
     /** {@inheritDoc} */
     @Override
-    public ProblemBuildable parameters(@Nullable final Map<String, Object> parameters) {
+    public ProblemBuildable parameters(final @Nullable Map<String, Object> parameters) {
       if (MapUtils.isNotEmpty(parameters)) {
         parameters.forEach(this::parameter);
       }

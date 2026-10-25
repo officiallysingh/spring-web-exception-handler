@@ -2,7 +2,6 @@ package com.neolama.common.exception.advice.http;
 
 import com.neolama.common.exception.advice.Exceptional;
 import com.neolama.common.exception.core.ProblemDetails;
-import jakarta.annotation.Nullable;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.ClassUtils;
 import org.springframework.http.HttpStatus;
@@ -28,7 +27,7 @@ public interface HttpRequestMethodNotSupportedAdvice extends Exceptional {
   @ExceptionHandler
   default ProblemDetails handleRequestMethodNotSupportedException(
       final HttpRequestMethodNotSupportedException exception, final NativeWebRequest request) {
-    @Nullable final String[] methods = exception.getSupportedMethods();
+    final String[] methods = exception.getSupportedMethods();
     final String requestedMethod = exception.getMethod();
     final String allowedMethods = ArrayUtils.isEmpty(methods) ? "None" : String.join(",", methods);
     //    final HttpHeaders headers = new HttpHeaders();
