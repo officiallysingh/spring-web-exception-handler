@@ -1,6 +1,7 @@
 package com.neolama.common.exception;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import java.sql.SQLException;
 import org.apache.tomcat.util.http.fileupload.impl.FileSizeLimitExceededException;
@@ -12,15 +13,19 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.buffer.DataBufferLimitException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.server.ResponseStatusException;
 
 /** Minimal application used by the advice integration tests. */
 @SpringBootApplication
@@ -98,6 +103,21 @@ public class TestApplication {
                       + " maximum (1048576)",
                   2000000,
                   1048576)));
+    }
+
+    @GetMapping("/status-reason")
+    String statusReason() {
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Employee 7 not found");
+    }
+
+    @GetMapping("/status-499")
+    String status499() {
+      throw new ResponseStatusException(HttpStatusCode.valueOf(499));
+    }
+
+    @GetMapping("/page")
+    String page(@RequestParam @Min(0) final int page) {
+      return "page " + page;
     }
 
     @GetMapping("/not-null-violation")

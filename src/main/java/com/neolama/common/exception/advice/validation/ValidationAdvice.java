@@ -8,5 +8,6 @@ public interface ValidationAdvice
     extends ConstraintViolationAdvice,
         BindAdvice,
         MethodArgumentNotValidAdvice,
+        HandlerMethodValidationAdvice,
         MethodArgumentTypeMismatchAdvice,
         TypeMismatchAdvice {}
