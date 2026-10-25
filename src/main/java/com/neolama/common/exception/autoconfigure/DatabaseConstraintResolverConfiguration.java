@@ -5,6 +5,7 @@ import com.neolama.common.exception.advice.dao.constraint.ConstraintNameResolver
 import com.neolama.common.exception.advice.dao.constraint.MongoConstraintNameResolver;
 import com.neolama.common.exception.advice.dao.constraint.PostgresConstraintNameResolver;
 import org.postgresql.PGConnection;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
@@ -19,7 +20,7 @@ import org.springframework.dao.DataIntegrityViolationException;
  * <p>Active in servlet web applications that have {@code spring-tx} on the classpath, when {@code
  * problem.dao-advice-enabled} is {@code true} or unset.
  */
-@Configuration
+@AutoConfiguration(before = WebDaoExceptionHandler.class)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnClass(DataIntegrityViolationException.class)
 @ConditionalOnProperty(
@@ -30,6 +31,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 public class DatabaseConstraintResolverConfiguration {
 
   /** Configuration for PostgreSQL constraint name resolution. */
+  @Configuration(proxyBeanMethods = false)
   @ConditionalOnClass(PGConnection.class)
   static class PostgresqlConstraintNameResolverConfiguration {
 
@@ -45,6 +47,7 @@ public class DatabaseConstraintResolverConfiguration {
   }
 
   /** Configuration for MongoDB constraint name resolution. */
+  @Configuration(proxyBeanMethods = false)
   @ConditionalOnClass(MongoClientSettings.class)
   static class MongoConstraintNameResolverConfiguration {
 

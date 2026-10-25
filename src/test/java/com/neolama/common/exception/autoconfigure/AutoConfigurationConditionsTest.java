@@ -3,6 +3,7 @@ package com.neolama.common.exception.autoconfigure;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.neolama.common.exception.advice.dao.constraint.ConstraintNameResolver;
+import com.neolama.common.exception.jackson.ProblemModule;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.FilteredClassLoader;
@@ -41,6 +42,8 @@ class AutoConfigurationConditionsTest {
           assertThat(context).hasSingleBean(WebDaoExceptionHandler.class);
           assertThat(context).hasSingleBean(WebSecurityExceptionHandler.class);
           assertThat(context).getBeans(ConstraintNameResolver.class).isNotEmpty();
+          assertThat(context).hasSingleBean(ProblemMessageProvider.class);
+          assertThat(context).hasSingleBean(ProblemModule.class);
         });
   }
 
@@ -68,6 +71,8 @@ class AutoConfigurationConditionsTest {
               assertThat(context).doesNotHaveBean(WebDaoExceptionHandler.class);
               assertThat(context).doesNotHaveBean(WebSecurityExceptionHandler.class);
               assertThat(context).doesNotHaveBean(AuthenticationEntryPoint.class);
+              assertThat(context).doesNotHaveBean(ProblemMessageProvider.class);
+              assertThat(context).doesNotHaveBean(ProblemModule.class);
             });
   }
 
@@ -82,6 +87,8 @@ class AutoConfigurationConditionsTest {
               assertThat(context).doesNotHaveBean(WebDaoExceptionHandler.class);
               assertThat(context).doesNotHaveBean(WebSecurityExceptionHandler.class);
               assertThat(context).doesNotHaveBean(AuthenticationEntryPoint.class);
+              assertThat(context).doesNotHaveBean(ProblemMessageProvider.class);
+              assertThat(context).doesNotHaveBean(ProblemModule.class);
             });
   }
 }
