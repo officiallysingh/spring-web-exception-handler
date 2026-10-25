@@ -2,6 +2,8 @@ package com.neolama.common.exception.advice.dao.constraint;
 
 import static com.neolama.common.exception.core.ProblemConstant.DOT;
 
+import com.mongodb.MongoException;
+
 /**
  * {@link ConstraintNameResolver} implementation for MongoDB.
  *
@@ -27,7 +29,7 @@ public class MongoConstraintNameResolver implements ConstraintNameResolver {
 
   /** {@inheritDoc} */
   @Override
-  public Type getType() {
-    return Type.MONGO_DB;
+  public boolean supports(final Throwable cause) {
+    return cause instanceof MongoException;
   }
 }

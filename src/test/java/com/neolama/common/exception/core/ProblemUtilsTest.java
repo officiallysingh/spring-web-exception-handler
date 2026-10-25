@@ -31,4 +31,15 @@ class ProblemUtilsTest {
   void firstNumberReturnsDefaultWhenNumberDoesNotFitLong() {
     assertThat(ProblemUtils.firstNumber("size 99999999999999999999", -1)).isEqualTo(-1);
   }
+
+  @Test
+  void problemCodeHyphenatesCamelCaseClassName() {
+    assertThat(ProblemUtils.getProblemCode("NullPointerException"))
+        .isEqualTo("null-pointer-exception");
+  }
+
+  @Test
+  void problemCodeSplitsEveryUpperCaseLetter() {
+    assertThat(ProblemUtils.getProblemCode("IOException")).isEqualTo("i-o-exception");
+  }
 }

@@ -4,26 +4,18 @@ package com.neolama.common.exception.advice.dao.constraint;
 public interface ConstraintNameResolver {
 
   /**
+   * Returns whether this resolver understands the given database exception.
+   *
+   * @param cause the most specific cause of the data-access exception
+   * @return {@code true} when {@link #resolveConstraintName(String)} applies to the cause
+   */
+  boolean supports(final Throwable cause);
+
+  /**
    * Resolves the constraint name from the given exception message.
    *
-   * @param exceptionMessage the database exception message
+   * @param exceptionMessage the database exception message, never {@code null}
    * @return the extracted constraint name, or a default value if not found
    */
   String resolveConstraintName(final String exceptionMessage);
-
-  /**
-   * Returns the database this resolver supports.
-   *
-   * @return the resolver type
-   */
-  Type getType();
-
-  /** Database whose constraint names this resolver can extract. */
-  enum Type {
-    /** PostgreSQL constraint messages. */
-    POSTGRESQL,
-
-    /** MongoDB write-error messages. */
-    MONGO_DB
-  }
 }

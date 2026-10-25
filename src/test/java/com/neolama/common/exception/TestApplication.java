@@ -1,11 +1,21 @@
 package com.neolama.common.exception;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import java.sql.SQLException;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.buffer.DataBufferLimitException;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
@@ -40,5 +50,47 @@ public class TestApplication {
     String maxUploadSize() {
       throw new MaxUploadSizeExceededException(1048576);
     }
+
+    @GetMapping("/data-integrity-null-message")
+    String dataIntegrityNullMessage() {
+      throw new DataIntegrityViolationException("insert failed", new SQLException((String) null));
+    }
+
+    @GetMapping("/duplicate-key-postgres")
+    String duplicateKeyPostgres() {
+      throw new DuplicateKeyException(
+          "insert failed",
+          new PSQLException(
+              "ERROR: duplicate key value violates unique constraint \"employees_name_key\"",
+              PSQLState.UNIQUE_VIOLATION));
+    }
+
+    @GetMapping("/duplicate-key-postgres-unconfigured")
+    String duplicateKeyPostgresUnconfigured() {
+      throw new DuplicateKeyException(
+          "insert failed",
+          new PSQLException(
+              "ERROR: duplicate key value violates unique constraint \"orders_ref_key\"\n"
+                  + "  Detail: Key (ref)=(secret-ref) already exists.",
+              PSQLState.UNIQUE_VIOLATION));
+    }
+
+    @GetMapping("/illegal-state")
+    String illegalState() {
+      throw new IllegalStateException("db password is x");
+    }
+
+    @GetMapping("/username-not-found")
+    String usernameNotFound() {
+      throw new UsernameNotFoundException("User alice not found");
+    }
+
+    @PostMapping("/validated")
+    String validated(@Valid @RequestBody final Payload payload) {
+      return payload.name();
+    }
   }
+
+  /** Request body with one required field. */
+  record Payload(@NotBlank String name) {}
 }

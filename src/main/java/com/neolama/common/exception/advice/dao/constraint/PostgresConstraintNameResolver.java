@@ -1,7 +1,10 @@
 package com.neolama.common.exception.advice.dao.constraint;
 
+import org.postgresql.util.PSQLException;
+
 /**
- * {@link ConstraintNameResolver} that reads a constraint name from a PostgreSQL exception message.
+ * {@link ConstraintNameResolver} that reads a constraint name from a PostgreSQL JDBC driver
+ * exception message.
  */
 public class PostgresConstraintNameResolver implements ConstraintNameResolver {
 
@@ -20,7 +23,7 @@ public class PostgresConstraintNameResolver implements ConstraintNameResolver {
 
   /** {@inheritDoc} */
   @Override
-  public Type getType() {
-    return Type.POSTGRESQL;
+  public boolean supports(final Throwable cause) {
+    return cause instanceof PSQLException;
   }
 }

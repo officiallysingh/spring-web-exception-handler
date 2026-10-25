@@ -52,6 +52,18 @@ public class ProblemConstant {
   /** Fallback problem detail when none is configured. */
   public static final String DEFAULT_DETAIL = "An unexpected error occurred";
 
+  /** Client-safe fallback detail for a failed request validation. */
+  public static final String VALIDATION_FAILED_DETAIL = "Request validation failed";
+
+  /** Client-safe fallback detail for a data-integrity or duplicate-key violation. */
+  public static final String DATA_CONFLICT_DETAIL = "The request conflicts with existing data";
+
+  /** Client-safe fallback detail for a request body that cannot be read. */
+  public static final String MALFORMED_BODY_DETAIL = "Malformed request body";
+
+  /** Client-safe fallback detail for an unknown user, so it reads like a wrong password. */
+  public static final String BAD_CREDENTIALS_DETAIL = "Bad credentials";
+
   /** Fallback HTTP status code when none is configured. */
   public static final String DEFAULT_STATUS = "500";
 }

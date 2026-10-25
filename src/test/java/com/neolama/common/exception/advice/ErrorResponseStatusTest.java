@@ -22,7 +22,7 @@ class ErrorResponseStatusTest {
         .bodyJson()
         .satisfies(
             body -> {
-              body.assertThat().extractingPath("$.code").isEqualTo("no-resource-found");
+              body.assertThat().extractingPath("$.code").isEqualTo("no-resource-found-exception");
               body.assertThat().extractingPath("$.status").isEqualTo(404);
               body.assertThat().extractingPath("$.instance").isEqualTo("/does-not-exist");
               body.assertThat()
@@ -37,6 +37,6 @@ class ErrorResponseStatusTest {
         .hasStatus(503)
         .bodyJson()
         .extractingPath("$.code")
-        .isEqualTo("async-request-timeout");
+        .isEqualTo("async-request-timeout-exception");
   }
 }

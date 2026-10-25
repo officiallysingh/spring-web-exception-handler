@@ -3,6 +3,7 @@ package com.neolama.common.exception.advice;
 import static com.neolama.common.exception.core.ProblemConstant.*;
 
 import com.neolama.common.exception.autoconfigure.ProblemMessageProvider;
+import com.neolama.common.exception.core.ProblemConstant;
 import com.neolama.common.exception.core.ProblemDetails;
 import com.neolama.common.exception.core.ProblemUtils;
 import jakarta.servlet.http.HttpServletRequest;
@@ -124,12 +125,18 @@ public interface Exceptional {
   /**
    * Converts the throwable into problem details with the given status.
    *
+   * <p>For a server error the fallback detail is {@value ProblemConstant#DEFAULT_DETAIL}, so
+   * internal messages such as SQL text, file paths, or class names stay in the server log. Other
+   * statuses use the exception message. A {@code detail.{errorKey}} entry wins in both cases.
+   *
    * @param throwable the throwable to convert
    * @param status the HTTP status of the problem
    * @return problem details for the throwable
    */
   default ProblemDetails toProblemDetails(final Throwable throwable, final HttpStatus status) {
-    return toProblemDetails(throwable, status, throwable.getMessage());
+    final String defaultDetail =
+        status.is5xxServerError() ? DEFAULT_DETAIL : throwable.getMessage();
+    return toProblemDetails(throwable, status, defaultDetail);
   }
 
   /**

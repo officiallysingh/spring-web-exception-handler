@@ -130,8 +130,8 @@ Advice types are interfaces. The autoconfigured `@RestControllerAdvice` classes 
 | Advice | Handles | Status | Error key |
 | --- | --- | --- | --- |
 | [**`DaoAdvice`**](src/main/java/com/neolama/common/exception/advice/dao/DaoAdvice.java) | | | |
-| `├──` [`DataIntegrityViolationAdvice`](src/main/java/com/neolama/common/exception/advice/dao/DataIntegrityViolationAdvice.java) | `DataIntegrityViolationException` | [`500`](https://httpstatus.es/500) | `DataIntegrityViolationException.{constraintName}` |
-| `└──` [`DuplicateKeyExceptionAdvice`](src/main/java/com/neolama/common/exception/advice/dao/DuplicateKeyExceptionAdvice.java) | `DuplicateKeyException` | [`500`](https://httpstatus.es/500) | `DuplicateKeyException.{constraintName}` |
+| `├──` [`DataIntegrityViolationAdvice`](src/main/java/com/neolama/common/exception/advice/dao/DataIntegrityViolationAdvice.java) | `DataIntegrityViolationException` | [`500`](https://httpstatus.es/500) | `DataIntegrityViolationException.{constraintName}`, or `DataIntegrityViolationException` when no resolver applies |
+| `└──` [`DuplicateKeyExceptionAdvice`](src/main/java/com/neolama/common/exception/advice/dao/DuplicateKeyExceptionAdvice.java) | `DuplicateKeyException` | [`500`](https://httpstatus.es/500) | `DuplicateKeyException.{constraintName}`, or `DuplicateKeyException` when no resolver applies |
 
 [`WebDaoExceptionHandler`](src/main/java/com/neolama/common/exception/autoconfigure/WebDaoExceptionHandler.java) is the `@RestControllerAdvice` for these exceptions. It is registered when `problem.dao-advice-enabled` is `true` (the default).
 
@@ -140,7 +140,7 @@ Advice types are interfaces. The autoconfigured `@RestControllerAdvice` classes 
 * [`PostgresConstraintNameResolver`](src/main/java/com/neolama/common/exception/advice/dao/constraint/PostgresConstraintNameResolver.java) when `org.postgresql.PGConnection` is on the classpath.
 * [`MongoConstraintNameResolver`](src/main/java/com/neolama/common/exception/advice/dao/constraint/MongoConstraintNameResolver.java) when `com.mongodb.MongoClientSettings` is on the classpath.
 
-The handler treats an exception message that contains `WriteError` as MongoDB and every other message as PostgreSQL. Constraint name resolvers exist for those two databases. For another database, implement `ConstraintNameResolver` and declare it as a bean.
+The handler takes the most specific cause of the exception and uses the first resolver whose `supports(cause)` returns `true`: a PostgreSQL JDBC `PSQLException` goes to the PostgreSQL resolver, and a MongoDB driver `MongoException` goes to the MongoDB resolver. When no resolver supports the cause, the error key is the exception simple name alone, such as `DataIntegrityViolationException`, so one generic `detail.DataIntegrityViolationException` entry covers it.
 
 ### Security advices
 
@@ -328,8 +328,8 @@ Validation advices add `violations`, a list of [`Problem`](src/main/java/com/neo
 
 If the bundle has no `code.` entry, the default code is:
 
-* the error key converted to kebab-case, with a trailing `-exception` removed, when the key contains no `.`  
-  `JobInstanceAlreadyCompleteException` → `job-instance-already-complete`
+* the error key converted to lower-case kebab-case when the key contains no `.`. Every upper-case letter starts a new segment, and the `-exception` suffix is kept  
+  `JobInstanceAlreadyCompleteException` → `job-instance-already-complete-exception`, `IOException` → `i-o-exception`
 * the status name in kebab-case when the key contains a `.`  
   HTTP 400 → `bad-request`, HTTP 500 → `internal-server-error`
 
@@ -644,7 +644,7 @@ the same in `errors.properties` file for different error keys. Enable TRACE logg
   "instance": "/api/employees",
   "method": "POST",
   "timestamp": "2023-10-29T16:44:10.917194+05:30",
-  "code": "500"
+  "code": "internal-server-error"
 }
 ```
 
@@ -658,7 +658,7 @@ the same in `errors.properties` file for different error keys. Enable TRACE logg
   "instance": "/api/states",
   "method": "POST",
   "timestamp": "2023-10-29T16:44:44.806613+05:30",
-  "code": "500"
+  "code": "internal-server-error"
 }
 ```
 
@@ -708,7 +708,7 @@ the same in `errors.properties` file for different error keys. Enable TRACE logg
   "instance": "/problems/uploadfile",
   "method": "POST",
   "timestamp": "2023-10-29T14:31:33.073971+05:30",
-  "code": "400"
+  "code": "max-upload-size-exceeded-exception"
 }
 ```
 
@@ -723,7 +723,7 @@ the same in `errors.properties` file for different error keys. Enable TRACE logg
   "instance": "/problems/handler-json-body",
   "method": "POST",
   "timestamp": "2023-10-29T14:45:47.467268+05:30",
-  "code": "415"
+  "code": "http-media-type-not-supported-exception"
 }
 ```
 
@@ -737,7 +737,7 @@ the same in `errors.properties` file for different error keys. Enable TRACE logg
   "instance": "/problems/handler-datetime-conversion",
   "method": "POST",
   "timestamp": "2023-10-29T16:15:08.916369+05:30",
-  "code": "405"
+  "code": "http-request-method-not-supported-exception"
 }
 ```
 
@@ -752,7 +752,7 @@ the same in `errors.properties` file for different error keys. Enable TRACE logg
   "instance": "/problems/handler-throwable",
   "method": "GET",
   "timestamp": "2023-10-29T14:49:40.998497+05:30",
-  "code": "500"
+  "code": "illegal-argument-exception"
 }
 ```
 
@@ -844,7 +844,7 @@ the same in `errors.properties` file for different error keys. Enable TRACE logg
   "instance": "/api/employees/1",
   "method": "GET",
   "timestamp": "2023-10-29T16:08:40.466566+05:30",
-  "code": "401"
+  "code": "insufficient-authentication-exception"
 }
 ```
 
@@ -859,4 +859,4 @@ Please give me a :star: if you find it helpful.
 Inspired by [**Zalando Problem libraries**](https://github.com/zalando/problem-spring-web).
 
 ## Known issues
-* [`ConstraintNameResolver`](src/main/java/com/neolama/common/exception/advice/dao/constraint/ConstraintNameResolver.java) implementations exist for PostgreSQL and MongoDB. [`WebDaoExceptionHandler`](src/main/java/com/neolama/common/exception/autoconfigure/WebDaoExceptionHandler.java) sends a message that contains `WriteError` to the MongoDB resolver and every other message to the PostgreSQL resolver. An application that uses another database, or both PostgreSQL and another relational database, needs its own `ConstraintNameResolver`.
+* Constraint names are resolved for PostgreSQL (JDBC driver) and MongoDB only. Errors from other sources fall back to the exception simple name as error key.

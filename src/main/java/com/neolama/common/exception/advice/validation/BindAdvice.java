@@ -1,5 +1,7 @@
 package com.neolama.common.exception.advice.validation;
 
+import static com.neolama.common.exception.core.ProblemConstant.VALIDATION_FAILED_DETAIL;
+
 import com.neolama.common.exception.core.Problem;
 import com.neolama.common.exception.core.ProblemDetails;
 import java.util.List;
@@ -32,7 +34,7 @@ public interface BindAdvice extends BaseBindingResultHandlingAdvice {
     final List<Problem> violations =
         handleBindingResult(exception.getBindingResult(), exception, status);
     final ProblemDetails problemDetails =
-        toProblemDetails(errorKey, status, exception.getMessage());
+        toProblemDetails(errorKey, status, VALIDATION_FAILED_DETAIL);
     problemDetails.setViolations(violations);
     return toResponse(problemDetails, request, exception);
   }

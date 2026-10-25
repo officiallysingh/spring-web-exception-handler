@@ -7,16 +7,21 @@ import com.neolama.common.exception.advice.dao.constraint.PostgresConstraintName
 import org.postgresql.PGConnection;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.dao.DataIntegrityViolationException;
 
 /**
  * Registers database-specific {@link ConstraintNameResolver} beans when the matching driver is
  * present.
  *
- * <p>Active when {@code problem.dao-advice-enabled} is {@code true} or unset.
+ * <p>Active in servlet web applications that have {@code spring-tx} on the classpath, when {@code
+ * problem.dao-advice-enabled} is {@code true} or unset.
  */
 @Configuration
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+@ConditionalOnClass(DataIntegrityViolationException.class)
 @ConditionalOnProperty(
     prefix = "problem",
     name = "dao-advice-enabled",

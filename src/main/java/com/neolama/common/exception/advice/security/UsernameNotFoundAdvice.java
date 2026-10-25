@@ -1,5 +1,7 @@
 package com.neolama.common.exception.advice.security;
 
+import static com.neolama.common.exception.core.ProblemConstant.BAD_CREDENTIALS_DETAIL;
+
 import com.neolama.common.exception.advice.Exceptional;
 import com.neolama.common.exception.core.ProblemDetails;
 import org.springframework.http.HttpStatus;
@@ -26,7 +28,8 @@ public interface UsernameNotFoundAdvice extends Exceptional {
       final UsernameNotFoundException exception, final NativeWebRequest request) {
     //    final HttpStatus status = resolveStatus(exception, HttpStatus.NOT_FOUND);
     final HttpStatus status = resolveStatus(exception, HttpStatus.UNAUTHORIZED);
-    final ProblemDetails problemDetails = toProblemDetails(exception, status);
+    final ProblemDetails problemDetails =
+        toProblemDetails(exception, status, BAD_CREDENTIALS_DETAIL);
     return toResponse(problemDetails, request, exception);
   }
 }

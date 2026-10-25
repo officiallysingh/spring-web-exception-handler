@@ -148,17 +148,14 @@ public class ProblemUtils {
   /**
    * Converts a camel-case errorKey into a lower-case, hyphen-separated problem code.
    *
-   * <p>A trailing {@code Exception} segment is removed.
+   * <p>Every upper-case letter starts a new segment, e.g. {@code NullPointerException} becomes
+   * {@code null-pointer-exception} and {@code IOException} becomes {@code i-o-exception}.
    *
    * @param errorKey the errorKey to convert, typically an exception simple class name
    * @return the problem code
    */
   public static String getProblemCode(final String errorKey) {
-    return errorKey
-        .replaceAll("([a-z0-9])([A-Z])", "$1-$2")
-        .replaceAll("([A-Z]+)([A-Z][a-z])", "$1-$2")
-        .toLowerCase()
-        .replaceFirst("-exception$", "");
+    return errorKey.replaceAll("(?<=.)(?=\\p{Upper})", "-").toLowerCase();
   }
 
   /**

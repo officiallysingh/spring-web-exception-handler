@@ -41,7 +41,7 @@ public interface ConstraintViolationAdvice extends Exceptional {
             .map(violation -> handleConstraintViolation(violation, exception, status))
             .toList();
     final ProblemDetails problemDetails =
-        toProblemDetails(errorKey, status, exception.getMessage());
+        toProblemDetails(errorKey, status, VALIDATION_FAILED_DETAIL);
     problemDetails.setViolations(violations);
     return toResponse(problemDetails, request, exception);
   }

@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,10 +23,11 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
  * details.
  *
  * <p>Also registers an {@link AuthenticationEntryPoint} and an {@link AccessDeniedHandler} that
- * delegate to the MVC exception resolver. Enabled when Spring Security is on the classpath and
- * {@code problem.security-advice-enabled} is {@code true} or unset.
+ * delegate to the MVC exception resolver. Enabled in servlet web applications when Spring Security
+ * is on the classpath and {@code problem.security-advice-enabled} is {@code true} or unset.
  */
 @Configuration
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnProperty(
     prefix = "problem",
     name = "security-advice-enabled",
