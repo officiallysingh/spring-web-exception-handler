@@ -1,9 +1,6 @@
 package com.neolama.common.exception.advice.http;
 
-import static com.neolama.common.exception.core.ProblemConstant.DETAIL_CODE_PREFIX;
-
 import com.neolama.common.exception.advice.Exceptional;
-import com.neolama.common.exception.autoconfigure.ProblemMessageProvider;
 import com.neolama.common.exception.core.ProblemDetails;
 import java.util.List;
 import org.apache.commons.lang3.ClassUtils;
@@ -36,12 +33,12 @@ public interface HttpMediaTypeNotAcceptableAdvice extends Exceptional {
     //    headers.setAccept(supportedMediaTypes);
     final String errorKey = ClassUtils.getShortClassName(exception.getClass());
     final HttpStatus status = resolveStatus(errorKey, HttpStatus.NOT_ACCEPTABLE);
-    final String defaultDetail =
-        ProblemMessageProvider.getMessage(
-            DETAIL_CODE_PREFIX + errorKey,
+    final ProblemDetails problemDetails =
+        toProblemDetails(
+            errorKey,
+            status,
             "Media Type Not Acceptable, except: {0}",
             MimeTypeUtils.toString(supportedMediaTypes));
-    final ProblemDetails problemDetails = toProblemDetails(errorKey, status, defaultDetail);
     return toResponse(problemDetails, request, exception);
   }
 }

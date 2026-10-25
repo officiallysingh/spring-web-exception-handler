@@ -10,6 +10,7 @@ import java.net.URI;
 import java.util.Optional;
 import org.apache.commons.lang3.ClassUtils;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
@@ -155,8 +156,29 @@ public interface Exceptional {
    */
   default ProblemDetails toProblemDetails(
       final String errorKey, final HttpStatus status, final String defaultDetail) {
+    return toProblemDetails(errorKey, status, defaultDetail, (Object[]) null);
+  }
+
+  /**
+   * Builds problem details for an error key, logging the key before resolution.
+   *
+   * <p>{@code detailArgs} fill the placeholders of the configured detail message, or of {@code
+   * defaultDetail} when none is configured.
+   *
+   * @param errorKey the message-source key used to resolve code, title, and detail
+   * @param status the HTTP status of the problem
+   * @param defaultDetail the detail used when no message is configured for {@code errorKey}
+   * @param detailArgs arguments substituted into the detail message, or {@code null} when the
+   *     detail has none
+   * @return problem details for the error key
+   */
+  default ProblemDetails toProblemDetails(
+      final String errorKey,
+      final HttpStatus status,
+      final String defaultDetail,
+      final @Nullable Object... detailArgs) {
     logErrorKey(errorKey);
-    return ProblemDetails.of(errorKey, defaultDetail, status);
+    return ProblemDetails.of(errorKey, defaultDetail, detailArgs, status);
   }
 
   /**

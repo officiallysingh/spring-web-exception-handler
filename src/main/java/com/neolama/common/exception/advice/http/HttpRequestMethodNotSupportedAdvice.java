@@ -1,9 +1,6 @@
 package com.neolama.common.exception.advice.http;
 
-import static com.neolama.common.exception.core.ProblemConstant.DETAIL_CODE_PREFIX;
-
 import com.neolama.common.exception.advice.Exceptional;
-import com.neolama.common.exception.autoconfigure.ProblemMessageProvider;
 import com.neolama.common.exception.core.ProblemDetails;
 import jakarta.annotation.Nullable;
 import org.apache.commons.lang3.ArrayUtils;
@@ -38,13 +35,13 @@ public interface HttpRequestMethodNotSupportedAdvice extends Exceptional {
     //    headers.setAllow(requireNonNull(exception.getSupportedHttpMethods()));
     final String errorKey = ClassUtils.getShortClassName(exception.getClass());
     final HttpStatus status = resolveStatus(errorKey, HttpStatus.METHOD_NOT_ALLOWED);
-    final String defaultDetail =
-        ProblemMessageProvider.getMessage(
-            DETAIL_CODE_PREFIX + errorKey,
+    final ProblemDetails problemDetails =
+        toProblemDetails(
+            errorKey,
+            status,
             "Requested Method: {0} not allowed, allowed methods are: {1}",
             requestedMethod,
             allowedMethods);
-    final ProblemDetails problemDetails = toProblemDetails(errorKey, status, defaultDetail);
     return toResponse(problemDetails, request, exception);
   }
 }

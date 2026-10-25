@@ -6,6 +6,8 @@ import jakarta.annotation.Nullable;
 import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.http.HttpStatus;
@@ -15,6 +17,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 /** Helpers for HTTP status lookup, stack traces, and problem-code formatting. */
 @UtilityClass
 public class ProblemUtils {
+
+  /** Matches a run of decimal digits. */
+  private static final Pattern NUMBER = Pattern.compile("\\d+");
 
   /**
    * Returns the status code as a string for the given {@link HttpStatusCode}.
@@ -114,6 +119,30 @@ public class ProblemUtils {
       current = scitr.next();
     }
     return escapedStacktrace.toString();
+  }
+
+  /**
+   * Returns the first whole number in the given text, such as {@code 1024} in {@code "Part exceeded
+   * the disk usage limit of 1024 bytes"}.
+   *
+   * @param text the text to search, may be {@code null}
+   * @param defaultValue the value returned when the text has no number or it does not fit a {@code
+   *     long}
+   * @return the first number in the text, or {@code defaultValue}
+   */
+  public static long firstNumber(@Nullable final String text, final long defaultValue) {
+    if (text == null) {
+      return defaultValue;
+    }
+    final Matcher matcher = NUMBER.matcher(text);
+    if (!matcher.find()) {
+      return defaultValue;
+    }
+    try {
+      return Long.parseLong(matcher.group());
+    } catch (final NumberFormatException e) {
+      return defaultValue;
+    }
   }
 
   /**
