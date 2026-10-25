@@ -6,6 +6,7 @@ import com.neolama.common.exception.advice.Exceptional;
 import com.neolama.common.exception.autoconfigure.ProblemMessageProvider;
 import com.neolama.common.exception.core.ProblemDetails;
 import com.neolama.common.exception.core.ProblemMessageSourceResolver;
+import com.neolama.common.exception.core.ProblemUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -83,7 +84,7 @@ public interface MessageNotReadableAdvice extends Exceptional {
             .toArray(String[]::new);
     final String code =
         ProblemMessageProvider.getMessage(
-            ProblemMessageSourceResolver.of(codeCodes, status.value()));
+            ProblemMessageSourceResolver.of(codeCodes, ProblemUtils.getProblemCode(status)));
     final String title =
         ProblemMessageProvider.getMessage(
             ProblemMessageSourceResolver.of(titleCodes, status.getReasonPhrase()));

@@ -32,23 +32,30 @@ class MessageNotReadableAdviceTest {
 
   @Test
   void invalidFormatUsesMostSpecificConfiguredKey() {
-    assertProblem(post("{\"count\":\"x\"}"), 400, "400", "Count must be a whole number");
+    assertProblem(post("{\"count\":\"x\"}"), 400, "bad-request", "Count must be a whole number");
   }
 
   @Test
   void invalidFormatFallsBackToPlainKey() {
     assertProblem(
-        post("{\"item\":{\"qty\":\"x\"}}"), 400, "400", "Some value has the wrong format");
+        post("{\"item\":{\"qty\":\"x\"}}"), 400, "bad-request", "Some value has the wrong format");
   }
 
   @Test
   void dottedMapKeyDoesNotCrashTheHandler() {
     assertProblem(
-        post("{\"counts\":{\"a.b\":\"x\"}}"), 400, "400", "Some value has the wrong format");
+        post("{\"counts\":{\"a.b\":\"x\"}}"),
+        400,
+        "bad-request",
+        "Some value has the wrong format");
   }
 
   @Test
-  void invalidListElement() {
-    assertProblem(post("{\"numbers\":[\"x\"]}"), 400, "400", "Some value has the wrong format");
+  void listElementUsesConfiguredCode() {
+    assertProblem(
+        post("{\"numbers\":[\"x\"]}"),
+        400,
+        "numbers-not-a-number",
+        "Some value has the wrong format");
   }
 }
