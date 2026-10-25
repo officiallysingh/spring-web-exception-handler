@@ -64,6 +64,14 @@ public class ProblemConstant {
   /** Client-safe fallback detail for an unknown user, so it reads like a wrong password. */
   public static final String BAD_CREDENTIALS_DETAIL = "Bad credentials";
 
+  /** Fallback detail for an upload over the size limit; {@code {0}} is the readable limit. */
+  public static final String UPLOAD_SIZE_EXCEEDED_DETAIL =
+      "Upload file size exceeded the maximum allowed limit: {0}";
+
+  /** Fallback detail for request data over a buffer limit; {@code {0}} is the readable limit. */
+  public static final String DATA_BUFFER_LIMIT_DETAIL =
+      "Request data exceeded the allowed limit: {0}";
+
   /** Fallback HTTP status code when none is configured. */
   public static final String DEFAULT_STATUS = "500";
 }

@@ -3,6 +3,8 @@ package com.neolama.common.exception;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import java.sql.SQLException;
+import org.apache.tomcat.util.http.fileupload.impl.FileSizeLimitExceededException;
+import org.apache.tomcat.util.http.fileupload.impl.SizeLimitExceededException;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -73,6 +75,29 @@ public class TestApplication {
               "ERROR: duplicate key value violates unique constraint \"orders_ref_key\"\n"
                   + "  Detail: Key (ref)=(secret-ref) already exists.",
               PSQLState.UNIQUE_VIOLATION));
+    }
+
+    @GetMapping("/upload-file-size-tomcat")
+    String uploadFileSizeTomcat() {
+      throw new MaxUploadSizeExceededException(
+          -1,
+          new IllegalStateException(
+              new FileSizeLimitExceededException(
+                  "The field file1 exceeds its maximum permitted size of 1048576 bytes.",
+                  2000000,
+                  1048576)));
+    }
+
+    @GetMapping("/upload-request-size-tomcat")
+    String uploadRequestSizeTomcat() {
+      throw new MaxUploadSizeExceededException(
+          -1,
+          new IllegalStateException(
+              new SizeLimitExceededException(
+                  "the request was rejected because its size (2000000) exceeds the configured"
+                      + " maximum (1048576)",
+                  2000000,
+                  1048576)));
     }
 
     @GetMapping("/not-null-violation")

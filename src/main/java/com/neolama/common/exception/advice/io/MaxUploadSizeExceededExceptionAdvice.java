@@ -1,13 +1,12 @@
 package com.neolama.common.exception.advice.io;
 
+import static com.neolama.common.exception.core.ProblemConstant.UPLOAD_SIZE_EXCEEDED_DETAIL;
+
 import com.neolama.common.exception.advice.Exceptional;
 import com.neolama.common.exception.core.ProblemDetails;
 import com.neolama.common.exception.core.ProblemUtils;
 import org.apache.commons.lang3.ClassUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.tomcat.util.http.fileupload.impl.FileSizeLimitExceededException;
 import org.springframework.http.HttpStatus;
-import org.springframework.util.unit.DataSize;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
@@ -17,7 +16,9 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
  * ProblemDetails}.
  *
  * <p>The status defaults to {@link HttpStatus#BAD_REQUEST}. The maximum size is taken from the
- * exception or from a nested cause when the exception does not carry it.
+ * exception, or else from the last number in the most specific cause's message, which is the limit
+ * in the messages of Tomcat and Jetty. It is passed to the detail as a readable size such as {@code
+ * 10 MB}.
  */
 public interface MaxUploadSizeExceededExceptionAdvice extends Exceptional {
 
@@ -32,29 +33,15 @@ public interface MaxUploadSizeExceededExceptionAdvice extends Exceptional {
   default ProblemDetails handleMaxUploadSizeExceededException(
       final MaxUploadSizeExceededException exception, final NativeWebRequest request) {
     final String errorKey = ClassUtils.getShortClassName(exception.getClass());
-    String defaultMessage = exception.getMessage();
-    long bytes = exception.getMaxUploadSize();
-    if (bytes == -1 && exception.getCause() instanceof IllegalStateException e) {
-      try {
-        defaultMessage = e.getMessage();
-        final String byteSizeString =
-            defaultMessage.substring(
-                defaultMessage.lastIndexOf("(") + 1, defaultMessage.lastIndexOf(")"));
-        bytes = StringUtils.isNotBlank(byteSizeString) ? Long.parseLong(byteSizeString) : bytes;
-      } catch (final Exception e1) {
-        // Ignore on purpose
-      }
-    }
-    if (bytes == -1
-        && exception.getMostSpecificCause() instanceof FileSizeLimitExceededException e) {
-      defaultMessage = e.getMessage();
-      bytes = ProblemUtils.firstNumber(defaultMessage, bytes);
-    }
-    final String maxFileSizeAllowed = bytes != -1 ? DataSize.ofBytes(bytes).toString() : "UNKNOWN";
+    final long bytes =
+        exception.getMaxUploadSize() != -1
+            ? exception.getMaxUploadSize()
+            : ProblemUtils.lastNumber(exception.getMostSpecificCause().getMessage(), -1);
+    final String maxFileSizeAllowed = bytes != -1 ? ProblemUtils.formatSize(bytes) : "UNKNOWN";
 
     final HttpStatus status = resolveStatus(errorKey, HttpStatus.BAD_REQUEST);
     final ProblemDetails problemDetails =
-        toProblemDetails(errorKey, status, defaultMessage, maxFileSizeAllowed);
+        toProblemDetails(errorKey, status, UPLOAD_SIZE_EXCEEDED_DETAIL, maxFileSizeAllowed);
     return toResponse(problemDetails, request, exception);
   }
 }

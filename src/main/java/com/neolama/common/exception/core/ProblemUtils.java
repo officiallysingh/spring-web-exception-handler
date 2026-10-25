@@ -3,6 +3,8 @@ package com.neolama.common.exception.core;
 import static org.springframework.core.annotation.AnnotatedElementUtils.findMergedAnnotation;
 
 import jakarta.annotation.Nullable;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
 import java.util.Optional;
@@ -20,6 +22,12 @@ public class ProblemUtils {
 
   /** Matches a run of decimal digits. */
   private static final Pattern NUMBER = Pattern.compile("\\d+");
+
+  /** Units used by {@link #formatSize(long)}, each 1024 times the previous one. */
+  private static final String[] SIZE_UNITS = {"B", "KB", "MB", "GB", "TB"};
+
+  /** Bytes in a kilobyte, as used by {@link #formatSize(long)}. */
+  private static final BigDecimal KILO = BigDecimal.valueOf(1024);
 
   /**
    * Returns the status code as a string for the given {@link HttpStatusCode}.
@@ -143,6 +151,54 @@ public class ProblemUtils {
     } catch (final NumberFormatException e) {
       return defaultValue;
     }
+  }
+
+  /**
+   * Returns the last whole number in the given text, such as {@code 1048576} in {@code "The field
+   * file1 exceeds its maximum permitted size of 1048576 bytes."}.
+   *
+   * @param text the text to search, may be {@code null}
+   * @param defaultValue the value returned when the text has no number or it does not fit a {@code
+   *     long}
+   * @return the last number in the text, or {@code defaultValue}
+   */
+  public static long lastNumber(@Nullable final String text, final long defaultValue) {
+    if (text == null) {
+      return defaultValue;
+    }
+    final Matcher matcher = NUMBER.matcher(text);
+    String last = null;
+    while (matcher.find()) {
+      last = matcher.group();
+    }
+    if (last == null) {
+      return defaultValue;
+    }
+    try {
+      return Long.parseLong(last);
+    } catch (final NumberFormatException e) {
+      return defaultValue;
+    }
+  }
+
+  /**
+   * Formats a byte count for people, using binary units: {@code 512 B}, {@code 1.5 KB}, {@code 10
+   * MB}.
+   *
+   * <p>Values below 1 KB stay in bytes. Larger values are shown in the biggest unit that keeps them
+   * at 1 or more, with at most two decimals.
+   *
+   * @param bytes the size in bytes, not negative
+   * @return the formatted size
+   */
+  public static String formatSize(final long bytes) {
+    int unit = 0;
+    BigDecimal value = BigDecimal.valueOf(bytes);
+    while (unit < SIZE_UNITS.length - 1 && value.compareTo(KILO) >= 0) {
+      value = value.divide(KILO, 2, RoundingMode.HALF_UP);
+      unit++;
+    }
+    return value.stripTrailingZeros().toPlainString() + " " + SIZE_UNITS[unit];
   }
 
   /**

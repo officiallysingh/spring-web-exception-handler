@@ -24,7 +24,7 @@ class DetailArgsTest {
         .hasStatus(400)
         .bodyJson()
         .extractingPath("$.detail")
-        .isEqualTo("Upload limit is 1024B");
+        .isEqualTo("Upload limit is 1 KB");
   }
 
   @Test
@@ -42,6 +42,6 @@ class DetailArgsTest {
         .hasStatus(400)
         .bodyJson()
         .extractingPath("$.detail")
-        .isEqualTo("Upload file size exceeded the maximum allowed limit: 1048576B");
+        .isEqualTo("Upload file size exceeded the maximum allowed limit: 1 MB");
   }
 }
