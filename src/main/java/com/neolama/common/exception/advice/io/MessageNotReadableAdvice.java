@@ -1,14 +1,16 @@
 package com.neolama.common.exception.advice.io;
 
 import static com.neolama.common.exception.core.ProblemConstant.*;
-import static org.apache.commons.collections4.CollectionUtils.isNotEmpty;
 
 import com.neolama.common.exception.advice.Exceptional;
 import com.neolama.common.exception.autoconfigure.ProblemMessageProvider;
 import com.neolama.common.exception.core.ProblemDetails;
 import com.neolama.common.exception.core.ProblemMessageSourceResolver;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.ClassUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -95,39 +97,85 @@ public interface MessageNotReadableAdvice extends Exceptional {
    * Builds message-source keys for an invalid JSON value, from the most specific property path to
    * the exception name alone.
    *
+   * <p>For {@code "date"} in {@code com.x.Payload} the keys are {@code
+   * InvalidFormatException.com.x.Payload.date}, {@code InvalidFormatException.Payload.date}, {@code
+   * InvalidFormatException.LocalDate.date}, {@code InvalidFormatException.date}, and {@code
+   * InvalidFormatException}. Nested objects add their class names in path order. A list element
+   * reports under the list property.
+   *
    * @param invalidFormatException the invalid-format exception
    * @return candidate error keys, most specific first
    */
   default String[] deriveInvalidFormatExceptionErrorKeys(
       final InvalidFormatException invalidFormatException) {
     final String errorKey = ClassUtils.getShortClassName(invalidFormatException.getClass());
-    final List<JacksonException.Reference> pathRef = invalidFormatException.getPath();
-    if (isNotEmpty(pathRef)) {
-      String desc = pathRef.get(0).getDescription();
-      String packageName = desc.contains("[") ? desc.substring(0, desc.lastIndexOf(".")) : desc;
-      List<String> classes =
-          pathRef.stream()
-              .map(JacksonException.Reference::getDescription)
-              .filter(description -> description.contains("[\""))
-              .map(
-                  description ->
-                      description.substring(
-                          description.lastIndexOf(".") + 1, description.lastIndexOf("[")))
-              .toList();
-      String classNames = String.join(".", classes);
-      //      Reference ref = pathRef.get(pathRef.size() - 1);
-      JacksonException.Reference ref = pathRef.getLast();
-      String propertyName = ref.getPropertyName();
-      String targetType = ClassUtils.getShortClassName(invalidFormatException.getTargetType());
-
-      return new String[] {
-        errorKey + DOT + packageName + DOT + classNames + DOT + propertyName,
-        errorKey + DOT + classNames + DOT + propertyName,
-        errorKey + DOT + targetType + DOT + propertyName,
-        errorKey + DOT + propertyName
-      };
-    } else {
+    final List<JacksonException.Reference> path = invalidFormatException.getPath();
+    final List<JacksonException.Reference> properties =
+        path.stream().filter(reference -> reference.getPropertyName() != null).toList();
+    if (properties.isEmpty()) {
       return new String[] {errorKey};
     }
+    // An index after the last property, as in "numbers[0]", reports under that property.
+    final String propertyName = properties.getLast().getPropertyName();
+    final String packageName = packageName(path.getFirst());
+    final String classNames =
+        properties.stream()
+            .map(MessageNotReadableAdvice::simpleClassName)
+            .collect(Collectors.joining(DOT));
+    final String targetType =
+        Objects.nonNull(invalidFormatException.getTargetType())
+            ? ClassUtils.getShortClassName(invalidFormatException.getTargetType())
+            : "";
+
+    final List<String> keys = new ArrayList<>(5);
+    if (!packageName.isEmpty()) {
+      keys.add(errorKey + DOT + packageName + DOT + classNames + DOT + propertyName);
+    }
+    keys.add(errorKey + DOT + classNames + DOT + propertyName);
+    if (!targetType.isEmpty()) {
+      keys.add(errorKey + DOT + targetType + DOT + propertyName);
+    }
+    keys.add(errorKey + DOT + propertyName);
+    keys.add(errorKey);
+    return keys.toArray(String[]::new);
+  }
+
+  /**
+   * Returns the binary name of the class a path element belongs to, such as {@code com.x.Payload}
+   * for {@code com.x.Payload["date"]}.
+   *
+   * <p>Only the text before the first {@code [} is used, so a property name that contains dots
+   * cannot change the result.
+   *
+   * @param reference the path element
+   * @return the class name
+   */
+  private static String className(final JacksonException.Reference reference) {
+    final String description = reference.getDescription();
+    final int bracket = description.indexOf('[');
+    return bracket < 0 ? description : description.substring(0, bracket);
+  }
+
+  /**
+   * Returns the package of the class a path element belongs to.
+   *
+   * @param reference the path element
+   * @return the package name, or an empty string for a class in the default package
+   */
+  private static String packageName(final JacksonException.Reference reference) {
+    final String className = className(reference);
+    final int dot = className.lastIndexOf('.');
+    return dot < 0 ? "" : className.substring(0, dot);
+  }
+
+  /**
+   * Returns the class name without its package, such as {@code Payload} or {@code Outer$Inner}.
+   *
+   * @param reference the path element
+   * @return the simple binary class name
+   */
+  private static String simpleClassName(final JacksonException.Reference reference) {
+    final String className = className(reference);
+    return className.substring(className.lastIndexOf('.') + 1);
   }
 }

@@ -141,6 +141,11 @@ public class TestApplication {
       throw new UsernameNotFoundException("User alice not found");
     }
 
+    @PostMapping("/formats")
+    String formats(@RequestBody final FormatsPayload payload) {
+      return "ok";
+    }
+
     @PostMapping("/validated")
     String validated(@Valid @RequestBody final Payload payload) {
       return payload.name();
