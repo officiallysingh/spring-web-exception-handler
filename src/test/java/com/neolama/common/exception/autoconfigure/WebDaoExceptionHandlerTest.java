@@ -48,7 +48,6 @@ class WebDaoExceptionHandlerTest {
 
   @Test
   void nullMessageDoesNotThrow() {
-    assertThat(this.handler.resolveConstraintName(new MongoException((String) null)))
-        .isEqualTo("mongo.duplicate.key");
+    assertThat(this.handler.resolveConstraintName(new MongoException((String) null))).isNull();
   }
 }

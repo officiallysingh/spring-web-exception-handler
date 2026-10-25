@@ -1,21 +1,24 @@
 package com.neolama.common.exception.advice.dao.constraint;
 
-/** Extracts a database constraint name from a persistence exception message. */
+import org.jspecify.annotations.Nullable;
+
+/** Extracts a database constraint name from a persistence exception. */
 public interface ConstraintNameResolver {
 
   /**
    * Returns whether this resolver understands the given database exception.
    *
    * @param cause the most specific cause of the data-access exception
-   * @return {@code true} when {@link #resolveConstraintName(String)} applies to the cause
+   * @return {@code true} when {@link #resolveConstraintName(Throwable)} applies to the cause
    */
   boolean supports(final Throwable cause);
 
   /**
-   * Resolves the constraint name from the given exception message.
+   * Resolves the constraint name from the given database exception.
    *
-   * @param exceptionMessage the database exception message, never {@code null}
-   * @return the extracted constraint name, or a default value if not found
+   * @param cause the most specific cause of the data-access exception, already accepted by {@link
+   *     #supports(Throwable)}
+   * @return the constraint name, or {@code null} when the exception names no constraint
    */
-  String resolveConstraintName(final String exceptionMessage);
+  @Nullable String resolveConstraintName(final Throwable cause);
 }

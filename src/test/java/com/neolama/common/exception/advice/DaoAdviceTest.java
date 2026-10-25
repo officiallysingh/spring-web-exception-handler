@@ -34,6 +34,15 @@ class DaoAdviceTest {
   }
 
   @Test
+  void notNullViolationGetsGenericKeyNotDuplicateKey() {
+    assertThat(this.mvc.get().uri("/not-null-violation"))
+        .hasStatus(500)
+        .bodyJson()
+        .extractingPath("$.code")
+        .isEqualTo("data-integrity-violation-exception");
+  }
+
+  @Test
   void postgresDuplicateKeyUsesConstraintKey() {
     assertThat(this.mvc.get().uri("/duplicate-key-postgres"))
         .hasStatus(409)

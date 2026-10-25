@@ -3,7 +3,6 @@ package com.neolama.common.exception.autoconfigure;
 import com.neolama.common.exception.advice.dao.DaoAdvice;
 import com.neolama.common.exception.advice.dao.constraint.ConstraintNameResolver;
 import java.util.List;
-import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -51,11 +50,10 @@ public class WebDaoExceptionHandler implements DaoAdvice {
   /** {@inheritDoc} */
   @Override
   public @Nullable String resolveConstraintName(final Throwable cause) {
-    final String message = StringUtils.trimToEmpty(cause.getMessage());
     return this.constraintNameResolvers.stream()
         .filter(resolver -> resolver.supports(cause))
         .findFirst()
-        .map(resolver -> resolver.resolveConstraintName(message))
+        .map(resolver -> resolver.resolveConstraintName(cause))
         .orElse(null);
   }
 }

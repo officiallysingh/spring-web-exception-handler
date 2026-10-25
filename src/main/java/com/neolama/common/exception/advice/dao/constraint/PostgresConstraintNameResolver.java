@@ -1,29 +1,43 @@
 package com.neolama.common.exception.advice.dao.constraint;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.apache.commons.lang3.StringUtils;
+import org.jspecify.annotations.Nullable;
 import org.postgresql.util.PSQLException;
+import org.postgresql.util.ServerErrorMessage;
 
 /**
- * {@link ConstraintNameResolver} that reads a constraint name from a PostgreSQL JDBC driver
- * exception message.
+ * {@link ConstraintNameResolver} for PostgreSQL JDBC driver exceptions.
+ *
+ * <p>Uses the constraint name the server reports in its structured error fields. When those are
+ * missing, reads it from a message such as {@code violates unique constraint "employees_name_key"}.
  */
 public class PostgresConstraintNameResolver implements ConstraintNameResolver {
 
-  /** {@inheritDoc} */
-  @Override
-  public String resolveConstraintName(final String exceptionMessage) {
-    String exMessage = exceptionMessage.trim();
-    try {
-      exMessage = exMessage.substring(exMessage.indexOf("constraint") + 12);
-      return exMessage.substring(0, exMessage.indexOf("\""));
-    } catch (final Exception e) {
-      // Ignored on purpose
-    }
-    return "postgres.duplicate.key";
-  }
+  /** Matches {@code constraint "name"} and captures the name. */
+  private static final Pattern CONSTRAINT = Pattern.compile("constraint \"([^\"]+)\"");
 
   /** {@inheritDoc} */
   @Override
   public boolean supports(final Throwable cause) {
     return cause instanceof PSQLException;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public @Nullable String resolveConstraintName(final Throwable cause) {
+    if (cause instanceof PSQLException exception) {
+      final ServerErrorMessage serverError = exception.getServerErrorMessage();
+      if (serverError != null && StringUtils.isNotBlank(serverError.getConstraint())) {
+        return serverError.getConstraint();
+      }
+    }
+    final String message = cause.getMessage();
+    if (message == null) {
+      return null;
+    }
+    final Matcher matcher = CONSTRAINT.matcher(message);
+    return matcher.find() ? matcher.group(1) : null;
   }
 }

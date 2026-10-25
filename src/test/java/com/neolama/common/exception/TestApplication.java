@@ -75,6 +75,16 @@ public class TestApplication {
               PSQLState.UNIQUE_VIOLATION));
     }
 
+    @GetMapping("/not-null-violation")
+    String notNullViolation() {
+      throw new DataIntegrityViolationException(
+          "insert failed",
+          new PSQLException(
+              "ERROR: null value in column \"name\" of relation \"employees\" violates not-null"
+                  + " constraint",
+              PSQLState.NOT_NULL_VIOLATION));
+    }
+
     @GetMapping("/illegal-state")
     String illegalState() {
       throw new IllegalStateException("db password is x");
