@@ -89,7 +89,7 @@ Advice types are interfaces. The autoconfigured `@RestControllerAdvice` classes 
 | --- | --- | --- | --- |
 | [**`GeneralAdvice`**](src/main/java/com/neolama/common/exception/advice/general/GeneralAdvice.java) | | | |
 | `├──` [`ThrowableProblemAdvice`](src/main/java/com/neolama/common/exception/advice/general/ThrowableProblemAdvice.java) | [`ThrowableProblem`](src/main/java/com/neolama/common/exception/core/ThrowableProblem.java) | Taken from the problem | Already set when the problem was built |
-| `├──` [`ThrowableAdvice`](src/main/java/com/neolama/common/exception/advice/general/ThrowableAdvice.java) | `Throwable` | [`500`](https://httpstatus.es/500), or `@ResponseStatus`, or `status.{SimpleName}` | Exception simple name |
+| `├──` [`ThrowableAdvice`](src/main/java/com/neolama/common/exception/advice/general/ThrowableAdvice.java) | `Throwable` | `status.{SimpleName}`, or `@ResponseStatus`, or the status of a Spring `ErrorResponse` (e.g. [`503`](https://httpstatus.es/503) for `AsyncRequestTimeoutException`), or [`500`](https://httpstatus.es/500) | Exception simple name |
 | `└──` [`UnsupportedOperationAdvice`](src/main/java/com/neolama/common/exception/advice/general/UnsupportedOperationAdvice.java) | `UnsupportedOperationException` | [`501`](https://httpstatus.es/501) | `UnsupportedOperationException` |
 | [**`HttpAdvice`**](src/main/java/com/neolama/common/exception/advice/http/HttpAdvice.java) | | | |
 | `├──` [`HttpMediaTypeNotAcceptableAdvice`](src/main/java/com/neolama/common/exception/advice/http/HttpMediaTypeNotAcceptableAdvice.java) | `HttpMediaTypeNotAcceptableException` | [`406`](https://httpstatus.es/406) | `HttpMediaTypeNotAcceptableException` |
@@ -109,6 +109,7 @@ Advice types are interfaces. The autoconfigured `@RestControllerAdvice` classes 
 | `├──` [`MissingServletRequestParameterAdvice`](src/main/java/com/neolama/common/exception/advice/routing/MissingServletRequestParameterAdvice.java) | `MissingServletRequestParameterException` | [`400`](https://httpstatus.es/400) | `MissingServletRequestParameterException.{parameterName}` |
 | `├──` [`MissingServletRequestPartAdvice`](src/main/java/com/neolama/common/exception/advice/routing/MissingServletRequestPartAdvice.java) | `MissingServletRequestPartException` | [`400`](https://httpstatus.es/400) | `MissingServletRequestPartException.{partName}` |
 | `├──` [`NoHandlerFoundAdvice`](src/main/java/com/neolama/common/exception/advice/routing/NoHandlerFoundAdvice.java) | `NoHandlerFoundException` | [`404`](https://httpstatus.es/404) | `NoHandlerFoundException` |
+| `├──` [`NoResourceFoundAdvice`](src/main/java/com/neolama/common/exception/advice/routing/NoResourceFoundAdvice.java) | `NoResourceFoundException` | [`404`](https://httpstatus.es/404) | `NoResourceFoundException` |
 | `└──` [`ServletRequestBindingAdvice`](src/main/java/com/neolama/common/exception/advice/routing/ServletRequestBindingAdvice.java) | `ServletRequestBindingException` | [`400`](https://httpstatus.es/400) | `ServletRequestBindingException` |
 | [**`ValidationAdvice`**](src/main/java/com/neolama/common/exception/advice/validation/ValidationAdvice.java) | | | |
 | `├──` [`ConstraintViolationAdvice`](src/main/java/com/neolama/common/exception/advice/validation/ConstraintViolationAdvice.java) | `ConstraintViolationException` | [`400`](https://httpstatus.es/400) | `ConstraintViolationException` |
@@ -194,10 +195,10 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Excepti
 
 ## Application configuration
 
-[`NoHandlerFoundAdvice`](src/main/java/com/neolama/common/exception/advice/routing/NoHandlerFoundAdvice.java) needs Spring MVC to throw when no handler matches:
+Unknown paths return `404` with no extra configuration. With Boot's default static resource mapping, Spring MVC throws `NoResourceFoundException`, handled by [`NoResourceFoundAdvice`](src/main/java/com/neolama/common/exception/advice/routing/NoResourceFoundAdvice.java). When static resource mapping is turned off, Spring MVC throws `NoHandlerFoundException` instead, handled by [`NoHandlerFoundAdvice`](src/main/java/com/neolama/common/exception/advice/routing/NoHandlerFoundAdvice.java):
 
 ```properties
-spring.mvc.throw-exception-if-no-handler-found=true
+spring.web.resources.add-mappings=false
 ```
 
 Leave Spring Boot's own problem-details support off. `spring.mvc.problemdetails.enabled` defaults to `false`. Turning it on lets Boot's handler shadow the advices in this library.

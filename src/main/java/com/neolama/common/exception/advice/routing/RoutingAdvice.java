@@ -9,4 +9,5 @@ public interface RoutingAdvice
         MissingServletRequestPartAdvice,
         MissingRequestHeaderAdvice,
         NoHandlerFoundAdvice,
+        NoResourceFoundAdvice,
         ServletRequestBindingAdvice {}

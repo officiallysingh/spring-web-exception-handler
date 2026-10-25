@@ -7,11 +7,13 @@ import com.neolama.common.exception.core.ProblemDetails;
 import com.neolama.common.exception.core.ProblemUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
+import java.util.Optional;
 import org.apache.commons.lang3.ClassUtils;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.context.request.NativeWebRequest;
 
 /**
@@ -47,15 +49,19 @@ public interface Exceptional {
   /**
    * Resolves the HTTP status for the given throwable.
    *
-   * <p>Looks up a configured status for the throwable's simple class name, then falls back to a
-   * status derived from the throwable and finally {@code defaultStatus}.
+   * <p>Looks up a configured status for the throwable's simple class name, then falls back to the
+   * {@code @ResponseStatus} of the throwable, then to the status of an {@link ErrorResponse}, and
+   * finally {@code defaultStatus}.
    *
    * @param throwable the throwable whose status is resolved
    * @param defaultStatus the status used when no configured status applies
    * @return the resolved HTTP status
    */
   default HttpStatus resolveStatus(final Throwable throwable, final HttpStatus defaultStatus) {
-    final HttpStatus defStatus = ProblemUtils.resolveStatus(throwable).orElse(defaultStatus);
+    final HttpStatus defStatus =
+        ProblemUtils.resolveStatus(throwable)
+            .or(() -> errorResponseStatus(throwable))
+            .orElse(defaultStatus);
     final String errorKey = ClassUtils.getShortClassName(throwable.getClass());
     try {
       final String statusCode =
@@ -67,6 +73,20 @@ public interface Exceptional {
       // Ignore on purpose
       return defStatus;
     }
+  }
+
+  /**
+   * Returns the status carried by a Spring {@link ErrorResponse}, such as {@code
+   * NoResourceFoundException} or {@code AsyncRequestTimeoutException}.
+   *
+   * @param throwable the throwable to inspect
+   * @return the status, or empty when the throwable is not an {@link ErrorResponse} or its code is
+   *     not a known {@link HttpStatus}
+   */
+  private static Optional<HttpStatus> errorResponseStatus(final Throwable throwable) {
+    return throwable instanceof ErrorResponse errorResponse
+        ? Optional.ofNullable(HttpStatus.resolve(errorResponse.getStatusCode().value()))
+        : Optional.empty();
   }
 
   /**
