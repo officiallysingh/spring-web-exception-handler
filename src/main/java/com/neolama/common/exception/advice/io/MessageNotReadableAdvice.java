@@ -11,7 +11,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ClassUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -112,7 +114,7 @@ public interface MessageNotReadableAdvice extends Exceptional {
     final List<JacksonException.Reference> path = invalidFormatException.getPath();
     final List<JacksonException.Reference> properties =
         path.stream().filter(reference -> reference.getPropertyName() != null).toList();
-    if (properties.isEmpty()) {
+    if (CollectionUtils.isEmpty(properties)) {
       return new String[] {errorKey};
     }
     // An index after the last property, as in "numbers[0]", reports under that property.
@@ -128,11 +130,11 @@ public interface MessageNotReadableAdvice extends Exceptional {
             : "";
 
     final List<String> keys = new ArrayList<>(5);
-    if (!packageName.isEmpty()) {
+    if (StringUtils.isNotEmpty(packageName)) {
       keys.add(errorKey + DOT + packageName + DOT + classNames + DOT + propertyName);
     }
     keys.add(errorKey + DOT + classNames + DOT + propertyName);
-    if (!targetType.isEmpty()) {
+    if (StringUtils.isNotEmpty(targetType)) {
       keys.add(errorKey + DOT + targetType + DOT + propertyName);
     }
     keys.add(errorKey + DOT + propertyName);

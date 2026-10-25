@@ -2,6 +2,7 @@ package com.neolama.common.exception.core;
 
 import java.util.Map;
 import lombok.Getter;
+import org.apache.commons.collections4.MapUtils;
 import org.jspecify.annotations.Nullable;
 import org.springframework.util.Assert;
 
@@ -87,7 +88,7 @@ public class ThrowableProblem extends RuntimeException {
     append(message, " ", this.problemDetails.getCode());
     append(message, ": ", this.problemDetails.getDetail());
     final Map<String, Object> properties = this.problemDetails.getProperties();
-    if (properties != null && !properties.isEmpty()) {
+    if (MapUtils.isNotEmpty(properties)) {
       message.append(' ').append(properties);
     }
     return message.toString();
