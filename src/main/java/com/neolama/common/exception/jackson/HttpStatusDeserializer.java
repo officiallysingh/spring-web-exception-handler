@@ -1,33 +1,28 @@
 package com.neolama.common.exception.jackson;
 
-import java.util.Map;
 import org.springframework.http.HttpStatusCode;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.JsonParser;
 import tools.jackson.databind.DeserializationContext;
 import tools.jackson.databind.deser.std.StdDeserializer;
 
-/** Jackson deserializer for {@link HttpStatusCode}. */
+/**
+ * Jackson deserializer for {@link HttpStatusCode}.
+ *
+ * <p>Known codes become the matching {@link org.springframework.http.HttpStatus}; any other code,
+ * such as {@code 499}, becomes a plain {@link HttpStatusCode}.
+ */
 final class HttpStatusDeserializer extends StdDeserializer<HttpStatusCode> {
 
-  /** Status codes this deserializer can return, indexed by numeric code. */
-  private final Map<Integer, HttpStatusCode> index;
-
-  /**
-   * Constructs a new {@link HttpStatusCode} deserializer.
-   *
-   * @param index the status code index
-   */
-  HttpStatusDeserializer(final Map<Integer, HttpStatusCode> index) {
+  /** Constructs a new {@link HttpStatusCode} deserializer. */
+  HttpStatusDeserializer() {
     super(HttpStatusCode.class);
-    this.index = index;
   }
 
   /** {@inheritDoc} */
   @Override
   public HttpStatusCode deserialize(JsonParser json, DeserializationContext ctxt)
       throws JacksonException {
-    final int statusCode = json.getIntValue();
-    return this.index.get(statusCode);
+    return HttpStatusCode.valueOf(json.getIntValue());
   }
 }
