@@ -9,6 +9,13 @@ import org.springframework.util.Assert;
  * Runtime exception that carries {@link ProblemDetails} for a failed request.
  *
  * <p>{@link #toString()} produces a single log line and omits unset request fields.
+ *
+ * <p><b>Create a new instance for every failure; do not keep one in a field and throw it again.</b>
+ * The advice that writes the response sets the request {@code instance} and {@code method} on the
+ * carried {@link ProblemDetails} itself, so a shared instance can mix up the path and method of
+ * concurrent requests. Its {@code timestamp} is also the time the instance was created, which goes
+ * stale when the instance is reused. Reuse an {@link ErrorType} instead and build a new problem
+ * from it each time with {@link Problems#of(ErrorType)}.
  */
 @Getter
 public class ThrowableProblem extends RuntimeException {

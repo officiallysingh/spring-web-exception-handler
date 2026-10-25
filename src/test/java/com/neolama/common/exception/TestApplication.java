@@ -3,6 +3,7 @@ package com.neolama.common.exception;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import java.sql.SQLException;
 import org.apache.tomcat.util.http.fileupload.impl.FileSizeLimitExceededException;
 import org.apache.tomcat.util.http.fileupload.impl.SizeLimitExceededException;
@@ -146,6 +147,6 @@ public class TestApplication {
     }
   }
 
-  /** Request body with one required field. */
-  record Payload(@NotBlank String name) {}
+  /** Request body with a required name and an optional nick of 2 to 5 characters. */
+  record Payload(@NotBlank String name, @Size(min = 2, max = 5) String nick) {}
 }

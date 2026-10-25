@@ -19,6 +19,9 @@ import org.springframework.util.Assert;
  * <p>Callers start with {@link #of(String)}, {@link #of(ErrorType)}, {@link #of(Collection)}, or
  * {@link #of(Problem, Problem...)} and finish with {@link ProblemBuildable#throwAble()} or {@link
  * ProblemBuildable#throwAble(HttpStatus)}.
+ *
+ * <p>Build and throw a new {@link ThrowableProblem} for every failure; do not store the result of
+ * {@code throwAble()} and throw it again. See {@link ThrowableProblem} for why.
  */
 @Slf4j
 @UtilityClass

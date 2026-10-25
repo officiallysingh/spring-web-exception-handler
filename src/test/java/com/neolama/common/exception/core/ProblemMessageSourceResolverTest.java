@@ -1,0 +1,63 @@
+package com.neolama.common.exception.core;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.List;
+import org.junit.jupiter.api.Test;
+import org.springframework.context.support.DefaultMessageSourceResolvable;
+import org.springframework.validation.FieldError;
+import org.springframework.validation.ObjectError;
+
+/** Factory methods for field and object errors pass flat message arguments. */
+class ProblemMessageSourceResolverTest {
+
+  private static final String[] CODES = {"Size.payload.nick", "Size"};
+
+  private static final DefaultMessageSourceResolvable FIELD_NAME =
+      new DefaultMessageSourceResolvable(new String[] {"payload.nick", "nick"}, "nick");
+
+  private static final Object[] SIZE_ARGUMENTS = {FIELD_NAME, 5, 2};
+
+  private final FieldError fieldError =
+      new FieldError(
+          "payload", "nick", "toolongnick", false, CODES, SIZE_ARGUMENTS, "size must be 2-5");
+
+  private final ObjectError objectError =
+      new ObjectError("payload", CODES, SIZE_ARGUMENTS, "invalid payload");
+
+  @Test
+  void fieldErrorArgumentsAreFlat() {
+    final List<Object> expected = List.of("nick", "toolongnick", FIELD_NAME, 5, 2);
+    assertThat(ProblemMessageSourceResolver.of("p", this.fieldError).getArguments())
+        .containsExactlyElementsOf(expected);
+    assertThat(ProblemMessageSourceResolver.of("p", this.fieldError, "default").getArguments())
+        .containsExactlyElementsOf(expected);
+    assertThat(ProblemMessageSourceResolver.of("p", this.fieldError, 400).getArguments())
+        .containsExactlyElementsOf(expected);
+  }
+
+  @Test
+  void objectErrorArgumentsAreFlat() {
+    final List<Object> expected = List.of("payload", FIELD_NAME, 5, 2);
+    assertThat(ProblemMessageSourceResolver.of("p", this.objectError).getArguments())
+        .containsExactlyElementsOf(expected);
+    assertThat(ProblemMessageSourceResolver.of("p", this.objectError, "default").getArguments())
+        .containsExactlyElementsOf(expected);
+    assertThat(ProblemMessageSourceResolver.of("p", this.objectError, 400).getArguments())
+        .containsExactlyElementsOf(expected);
+  }
+
+  @Test
+  void errorWithoutArgumentsKeepsOnlyLeadingValues() {
+    final FieldError noArguments =
+        new FieldError("payload", "nick", "x", false, CODES, null, "bad");
+    assertThat(ProblemMessageSourceResolver.of("p", noArguments).getArguments())
+        .containsExactly("nick", "x");
+  }
+
+  @Test
+  void codesArePrefixed() {
+    assertThat(ProblemMessageSourceResolver.of("p", this.fieldError).getCodes())
+        .containsExactly("p.Size.payload.nick", "p.Size");
+  }
+}

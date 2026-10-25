@@ -5,6 +5,7 @@ import static com.neolama.common.exception.core.ProblemConstant.DOT;
 import jakarta.validation.ConstraintViolation;
 import java.io.Serializable;
 import java.util.Arrays;
+import org.apache.commons.lang3.ArrayUtils;
 import org.jspecify.annotations.Nullable;
 import org.springframework.context.MessageSourceResolvable;
 import org.springframework.validation.FieldError;
@@ -15,6 +16,17 @@ import org.springframework.validation.ObjectError;
  *
  * <p>Factory methods accept raw codes, {@link ObjectError}s, {@link FieldError}s, and {@link
  * ConstraintViolation}s, prefixing codes so the text can be externalized.
+ *
+ * <p>Message placeholders:
+ *
+ * <ul>
+ *   <li>{@link FieldError}: {@code {0}} field, {@code {1}} rejected value, {@code {2}} field name
+ *       (translatable), {@code {3}} onwards the constraint attributes in alphabetical order, such
+ *       as {@code max} then {@code min} for a size constraint.
+ *   <li>{@link ObjectError}: {@code {0}} object name, {@code {1}} object name (translatable),
+ *       {@code {2}} onwards the constraint attributes in alphabetical order.
+ *   <li>{@link ConstraintViolation}: {@code {0}} property path, {@code {1}} invalid value.
+ * </ul>
  */
 public class ProblemMessageSourceResolver implements MessageSourceResolvable, Serializable {
 
@@ -170,7 +182,7 @@ public class ProblemMessageSourceResolver implements MessageSourceResolvable, Se
             .map(code -> prefix + DOT + code)
             .toArray(String[]::new),
         defaultMessage,
-        new Object[] {objectError.getObjectName(), objectError.getArguments()});
+        objectErrorArguments(objectError));
   }
 
   /**
@@ -188,7 +200,7 @@ public class ProblemMessageSourceResolver implements MessageSourceResolvable, Se
             .map(code -> prefix + DOT + code)
             .toArray(String[]::new),
         "" + status,
-        new Object[] {objectError.getObjectName(), objectError.getArguments()});
+        objectErrorArguments(objectError));
   }
 
   /**
@@ -206,7 +218,7 @@ public class ProblemMessageSourceResolver implements MessageSourceResolvable, Se
             .map(code -> prefix + DOT + code)
             .toArray(String[]::new),
         objectError.getDefaultMessage(),
-        new Object[] {objectError.getObjectName(), objectError.getArguments()});
+        objectErrorArguments(objectError));
   }
 
   /**
@@ -223,9 +235,7 @@ public class ProblemMessageSourceResolver implements MessageSourceResolvable, Se
             .map(code -> prefix + DOT + code)
             .toArray(String[]::new),
         fieldError.getDefaultMessage(),
-        new Object[] {
-          fieldError.getField(), fieldError.getRejectedValue(), fieldError.getArguments()
-        });
+        fieldErrorArguments(fieldError));
   }
 
   /**
@@ -243,9 +253,7 @@ public class ProblemMessageSourceResolver implements MessageSourceResolvable, Se
             .map(code -> prefix + DOT + code)
             .toArray(String[]::new),
         defaultMessage,
-        new Object[] {
-          fieldError.getField(), fieldError.getRejectedValue(), fieldError.getArguments()
-        });
+        fieldErrorArguments(fieldError));
   }
 
   /**
@@ -263,9 +271,7 @@ public class ProblemMessageSourceResolver implements MessageSourceResolvable, Se
             .map(code -> prefix + DOT + code)
             .toArray(String[]::new),
         "" + status,
-        new Object[] {
-          fieldError.getField(), fieldError.getRejectedValue(), fieldError.getArguments()
-        });
+        fieldErrorArguments(fieldError));
   }
 
   /**
@@ -314,6 +320,49 @@ public class ProblemMessageSourceResolver implements MessageSourceResolvable, Se
         prefix + DOT + violation.getPropertyPath().toString(),
         "" + status,
         new Object[] {violation.getPropertyPath().toString(), violation.getInvalidValue()});
+  }
+
+  /**
+   * Builds the message arguments for an {@link ObjectError}.
+   *
+   * <p>{@code {0}} is the object name; {@code {1}} onwards are the error's own arguments. For a
+   * Bean Validation error those are the object name as a resolvable, then the constraint attributes
+   * in alphabetical order.
+   *
+   * @param objectError the object error
+   * @return the flattened arguments
+   */
+  private static Object[] objectErrorArguments(final ObjectError objectError) {
+    return concat(new Object[] {objectError.getObjectName()}, objectError.getArguments());
+  }
+
+  /**
+   * Builds the message arguments for a {@link FieldError}.
+   *
+   * <p>{@code {0}} is the field, {@code {1}} the rejected value, and {@code {2}} onwards the
+   * error's own arguments. For a Bean Validation error those are the field name as a resolvable,
+   * which can be translated, then the constraint attributes in alphabetical order. For a size
+   * constraint with min 2 and max 5, {@code {3}} is {@code 5} (max) and {@code {4}} is {@code 2}
+   * (min).
+   *
+   * @param fieldError the field error
+   * @return the flattened arguments
+   */
+  private static Object[] fieldErrorArguments(final FieldError fieldError) {
+    return concat(
+        new Object[] {fieldError.getField(), fieldError.getRejectedValue()},
+        fieldError.getArguments());
+  }
+
+  /**
+   * Appends {@code tail} to {@code head}.
+   *
+   * @param head the leading arguments
+   * @param tail the trailing arguments, may be {@code null}
+   * @return a new array with both
+   */
+  private static Object[] concat(final Object[] head, final Object @Nullable [] tail) {
+    return tail == null ? head : ArrayUtils.addAll(head, tail);
   }
 
   /** {@inheritDoc} */
