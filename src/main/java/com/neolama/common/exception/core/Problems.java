@@ -2,11 +2,11 @@ package com.neolama.common.exception.core;
 
 import static com.neolama.common.exception.core.ProblemConstant.*;
 
+import com.neolama.common.exception.autoconfigure.ProblemMessageProvider;
 import jakarta.annotation.Nullable;
 import java.util.*;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -53,7 +53,7 @@ public class Problems {
    * @return the next step in the builder
    */
   public static CauseBuilder of(final Collection<Problem> problems) {
-    Assert.notEmpty(problems, "'problems' must not ne null or empty");
+    Assert.notEmpty(problems, "'problems' must not be null or empty");
     Assert.noNullElements(problems, "'problems' must not contain null elements");
     return new Builder(problems);
   }
@@ -138,8 +138,9 @@ public class Problems {
   public interface ProblemBuildable {
 
     /**
-     * Creates the exception using the error type status, or {@link
-     * HttpStatus#INTERNAL_SERVER_ERROR} when no error type was supplied.
+     * Creates the exception with a status taken from the {@code status.{errorKey}} message, then
+     * from the {@link ErrorType}, then {@link HttpStatus#INTERNAL_SERVER_ERROR}. A collection of
+     * problems uses {@link HttpStatus#INTERNAL_SERVER_ERROR}.
      *
      * @return the assembled exception
      */
@@ -190,8 +191,9 @@ public class Problems {
      * @param errorType the error type that supplies the key, detail, and status
      */
     Builder(final ErrorType errorType) {
+      Assert.notNull(errorType, "'errorType' must not be null");
+      Assert.hasText(errorType.getErrorKey(), "'errorType.errorKey' must not be null or empty");
       this.errorType = errorType;
-      this.status = errorType.getStatus();
     }
 
     /**
@@ -211,7 +213,6 @@ public class Problems {
      */
     Builder(final Collection<Problem> problems) {
       this.problems = problems;
-      this.status = HttpStatus.MULTI_STATUS;
     }
 
     /** {@inheritDoc} */
@@ -256,18 +257,55 @@ public class Problems {
     /** {@inheritDoc} */
     @Override
     public ThrowableProblem throwAble() {
-      this.status =
-          Objects.nonNull(this.errorType)
-              ? this.errorType.getStatus()
-              : HttpStatus.INTERNAL_SERVER_ERROR;
+      this.status = this.resolveStatus();
       return this.build();
     }
 
     /** {@inheritDoc} */
     @Override
     public ThrowableProblem throwAble(final HttpStatus status) {
+      Assert.notNull(status, "'status' must not be null");
       this.status = status;
       return this.build();
+    }
+
+    /**
+     * Resolves the status used by {@link #throwAble()}.
+     *
+     * <p>For an error key or {@link ErrorType}, a {@code status.{errorKey}} entry in the message
+     * source wins, then {@link ErrorType#getStatus()}, then {@link
+     * HttpStatus#INTERNAL_SERVER_ERROR}. A collection of problems always uses {@link
+     * HttpStatus#INTERNAL_SERVER_ERROR}.
+     *
+     * @return the resolved status
+     */
+    private HttpStatus resolveStatus() {
+      if (Objects.nonNull(this.errorType)) {
+        final HttpStatus javaDefault =
+            Objects.requireNonNullElse(
+                this.errorType.getStatus(), HttpStatus.INTERNAL_SERVER_ERROR);
+        return configuredStatus(this.errorType.getErrorKey()).orElse(javaDefault);
+      } else if (Objects.nonNull(this.errorKey)) {
+        return configuredStatus(this.errorKey).orElse(HttpStatus.INTERNAL_SERVER_ERROR);
+      } else {
+        // Initialized with problems: no single error key to look up.
+        return HttpStatus.INTERNAL_SERVER_ERROR;
+      }
+    }
+
+    /**
+     * Reads the {@code status.{errorKey}} entry from the message source.
+     *
+     * @param errorKey the error key
+     * @return the configured status, or empty when the entry is missing or not a known status code
+     */
+    private static Optional<HttpStatus> configuredStatus(final String errorKey) {
+      final String value =
+          ProblemMessageProvider.getMessage(STATUS_CODE_PREFIX + errorKey, (String) null);
+      if (!StringUtils.isNumeric(StringUtils.trimToEmpty(value))) {
+        return Optional.empty();
+      }
+      return Optional.ofNullable(HttpStatus.resolve(Integer.parseInt(value.trim())));
     }
 
     /**
@@ -284,14 +322,13 @@ public class Problems {
                 this.errorType.getDefaultDetail(),
                 this.detailsArgs,
                 this.status);
-      } else if (StringUtils.isNotBlank(this.errorKey)) {
+      } else if (Objects.nonNull(this.errorKey)) {
         problemDetail =
             ProblemDetails.of(this.errorKey, this.defaultDetail, this.detailsArgs, this.status);
-      } else if (CollectionUtils.isNotEmpty(this.problems)) {
+      } else {
+        // Initialized with problems.
         problemDetail = ProblemDetails.of(this.status);
         problemDetail.setErrors(this.problems);
-      } else {
-        problemDetail = ProblemDetails.of(this.status);
       }
       if (MapUtils.isNotEmpty(this.parameters)) {
         problemDetail.setProperties(this.parameters);
