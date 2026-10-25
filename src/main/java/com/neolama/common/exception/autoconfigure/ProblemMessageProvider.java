@@ -3,16 +3,25 @@ package com.neolama.common.exception.autoconfigure;
 import org.springframework.context.MessageSource;
 import org.springframework.context.MessageSourceResolvable;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.context.support.StaticMessageSource;
 
 /**
  * Resolves problem messages from the application {@link MessageSource} for the current locale.
  *
- * <p>A bean of this type must be created before the static lookup methods are used.
+ * <p>The lookup methods are static so that {@link com.neolama.common.exception.core.Problems} and
+ * the advice interfaces can use them without injection. Until the bean of this type is created,
+ * lookups use an empty message source and so return their default message, with any arguments
+ * filled in. This keeps code that builds problems usable in plain unit tests.
+ *
+ * <p>One message source is held per JVM: the one of the Spring context that created this bean last.
+ * A normal application has a single context, so this does not matter there. A test suite that keeps
+ * several cached contexts with different message bundles in one JVM should run each in its own
+ * fork, as this project's surefire configuration does.
  */
 public class ProblemMessageProvider {
 
   /** Message source used by the static lookup methods. */
-  private static MessageSource messageSource;
+  private static volatile MessageSource messageSource = new StaticMessageSource();
 
   /**
    * Constructs a new {@code ProblemMessageProvider} with the given {@link MessageSource}.
@@ -47,21 +56,6 @@ public class ProblemMessageProvider {
       final String messageCode, final String defaultMessage, final Object... params) {
     return messageSource.getMessage(
         messageCode, params, defaultMessage, LocaleContextHolder.getLocale());
-  }
-
-  /**
-   * Resolves a message for the given code, default message, and arguments using the current locale.
-   *
-   * @param messageCode the code to lookup
-   * @param params arguments for the message
-   * @return the resolved message
-   */
-  public static String getMessage(final String messageCode, final Object... params) {
-    return messageSource.getMessage(
-        messageCode,
-        params,
-        "No message found in property files with key: " + messageCode,
-        LocaleContextHolder.getLocale());
   }
 
   /**
