@@ -22,7 +22,8 @@ import org.springframework.http.ProblemDetail;
  * RFC 9457 problem details extended with a code, HTTP method, timestamp, and nested problems.
  *
  * <p>Code, title, and detail are resolved from the configured message source when an error key is
- * supplied. The problem type defaults to {@code about:blank}.
+ * supplied. The problem type defaults to {@code about:blank}; the advices replace it when {@code
+ * problem.type-url} is set.
  */
 @JsonPropertyOrder({
   "type",
@@ -40,9 +41,6 @@ import org.springframework.http.ProblemDetail;
 @Getter
 @EqualsAndHashCode(callSuper = true)
 public class ProblemDetails extends ProblemDetail {
-
-  /** Origin reserved for problem type URIs. */
-  private static final String TYPE_URL = "http://localhost:8090/";
 
   /** Stable code that identifies this problem. */
   private String code;

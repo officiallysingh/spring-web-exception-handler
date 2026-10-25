@@ -1,5 +1,6 @@
 package com.neolama.common.exception;
 
+import com.neolama.common.exception.core.Problems;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -129,6 +130,11 @@ public class TestApplication {
               "ERROR: null value in column \"name\" of relation \"employees\" violates not-null"
                   + " constraint",
               PSQLState.NOT_NULL_VIOLATION));
+    }
+
+    @GetMapping("/problem-not-found")
+    String problemNotFound() {
+      throw Problems.of("order.not.found").throwAble(HttpStatus.NOT_FOUND);
     }
 
     @GetMapping("/illegal-state")

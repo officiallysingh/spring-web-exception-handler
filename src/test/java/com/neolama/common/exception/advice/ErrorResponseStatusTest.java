@@ -26,6 +26,7 @@ class ErrorResponseStatusTest {
               body.assertThat().extractingPath("$.status").isEqualTo(404);
               body.assertThat().extractingPath("$.instance").isEqualTo("/does-not-exist");
               body.assertThat().extractingPath("$.method").isEqualTo("GET");
+              body.assertThat().extractingPath("$.type").isEqualTo("about:blank");
               body.assertThat()
                   .extractingPath("$.detail")
                   .isEqualTo("No resource found for GET /does-not-exist");

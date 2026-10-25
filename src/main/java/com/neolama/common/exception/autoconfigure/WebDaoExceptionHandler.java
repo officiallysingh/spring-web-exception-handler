@@ -1,9 +1,12 @@
 package com.neolama.common.exception.autoconfigure;
 
+import com.neolama.common.exception.advice.Exceptional;
 import com.neolama.common.exception.advice.dao.DaoAdvice;
 import com.neolama.common.exception.advice.dao.constraint.ConstraintNameResolver;
+import java.net.URI;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -38,13 +41,26 @@ public class WebDaoExceptionHandler implements DaoAdvice {
   /** Resolvers consulted in order; the first that supports the cause is used. */
   protected final List<ConstraintNameResolver> constraintNameResolvers;
 
+  /** Base URL for problem types, from {@code problem.type-url}, or {@code null} when unset. */
+  private final @Nullable URI typeUrl;
+
   /**
    * Creates a handler that consults the given constraint-name resolvers.
    *
    * @param constraintNameResolvers the resolvers to consult, possibly empty
+   * @param typeUrl the {@code problem.type-url} property, may be blank
    */
-  protected WebDaoExceptionHandler(final List<ConstraintNameResolver> constraintNameResolvers) {
+  protected WebDaoExceptionHandler(
+      final List<ConstraintNameResolver> constraintNameResolvers,
+      @Value("${problem.type-url:}") final String typeUrl) {
     this.constraintNameResolvers = List.copyOf(constraintNameResolvers);
+    this.typeUrl = Exceptional.parseTypeUrl(typeUrl);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public @Nullable URI typeUrl() {
+    return this.typeUrl;
   }
 
   /** {@inheritDoc} */

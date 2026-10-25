@@ -15,11 +15,11 @@ class WebDaoExceptionHandlerTest {
 
   private final WebDaoExceptionHandler handler =
       new WebDaoExceptionHandler(
-          List.of(new PostgresConstraintNameResolver(), new MongoConstraintNameResolver()));
+          List.of(new PostgresConstraintNameResolver(), new MongoConstraintNameResolver()), "");
 
   @Test
   void handlerWithoutResolversReturnsNull() {
-    final WebDaoExceptionHandler noResolvers = new WebDaoExceptionHandler(List.of());
+    final WebDaoExceptionHandler noResolvers = new WebDaoExceptionHandler(List.of(), "");
     assertThat(noResolvers.resolveConstraintName(new SQLException("boom"))).isNull();
   }
 

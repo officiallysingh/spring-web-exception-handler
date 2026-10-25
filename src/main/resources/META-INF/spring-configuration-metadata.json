@@ -3,8 +3,7 @@
     {
       "name": "problem.type-url",
       "type": "java.lang.String",
-      "defaultValue": "http://localhost:8080/problems/help.html",
-      "description": "Default: http://localhost:8080/problems/help.html, Help page base url."
+      "description": "Base URL of a page that documents problem codes, such as https://example.com/problems. When set, the problem 'type' is this URL with the problem code as fragment, e.g. https://example.com/problems#order-not-found. Must be an absolute URI. When unset, 'type' is about:blank."
     },
     {
       "name": "problem.dao-advice-enabled",

@@ -8,8 +8,10 @@ import com.neolama.common.exception.core.ProblemDetails;
 import com.neolama.common.exception.core.ProblemUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Optional;
 import org.apache.commons.lang3.ClassUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -17,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.context.request.NativeWebRequest;
+import org.springframework.web.util.UriComponentsBuilder;
 
 /**
  * Base interface for all advice traits. Provides methods for resolving HTTP status, converting
@@ -197,7 +200,9 @@ public interface Exceptional {
   /**
    * Completes problem details for the current request and logs the throwable.
    *
-   * <p>Sets the request URI as the problem instance and the HTTP method on the details.
+   * <p>Sets the request URI as the problem instance and the HTTP method on the details. When {@link
+   * #typeUrl()} is set, also sets the problem type to that URL with the problem code as fragment,
+   * such as {@code https://example.com/problems#order-not-found}.
    *
    * @param problemDetails the problem details to complete
    * @param request the current web request
@@ -208,7 +213,7 @@ public interface Exceptional {
       final ProblemDetails problemDetails,
       final NativeWebRequest request,
       final Throwable throwable) {
-    //    problemDetails.setType(typeUri(request, problemDetails.getCode()));
+    problemDetails.setType(typeUri(problemDetails));
     problemDetails.setInstance(requestUri(request));
     problemDetails.setMethod(requestMethod(request));
     log(throwable, problemDetails);
@@ -235,13 +240,59 @@ public interface Exceptional {
     return HttpMethod.valueOf(request.getNativeRequest(HttpServletRequest.class).getMethod());
   }
 
-  //  default URI typeUri(final NativeWebRequest request, final String code) {
-  //    HttpServletRequest httpRequest = request.getNativeRequest(HttpServletRequest.class);
-  //    StringBuffer url = httpRequest.getRequestURL();
-  //    String path = httpRequest.getRequestURI();
-  //    String origin = url.substring(0, url.length() - path.length());
-  //    return URI.create(origin + "/problems/help.html#" + code);
-  //  }
+  /**
+   * Returns the base URL of the page that documents problem codes, from {@code problem.type-url}.
+   *
+   * @return the base URL, or {@code null} when problem types stay {@code about:blank}
+   */
+  default @Nullable URI typeUrl() {
+    return null;
+  }
+
+  /**
+   * Returns the problem type for the given problem details.
+   *
+   * <p>With a {@link #typeUrl()}, a problem whose type is still {@code about:blank} gets the URL
+   * with its code as fragment. A type set explicitly on the problem is kept.
+   *
+   * @param problemDetails the problem details
+   * @return the problem type
+   */
+  default URI typeUri(final ProblemDetails problemDetails) {
+    final URI baseUrl = typeUrl();
+    final String code = problemDetails.getCode();
+    if (baseUrl == null
+        || StringUtils.isBlank(code)
+        || !DEFAULT_TYPE_URL.equals(problemDetails.getType())) {
+      return problemDetails.getType();
+    }
+    return UriComponentsBuilder.fromUri(baseUrl).fragment(code).encode().build().toUri();
+  }
+
+  /**
+   * Parses the {@code problem.type-url} property.
+   *
+   * @param value the property value, may be {@code null} or blank
+   * @return the URL, or {@code null} when the value is blank
+   * @throws IllegalArgumentException if the value is not an absolute URI
+   */
+  static @Nullable URI parseTypeUrl(@Nullable final String value) {
+    if (StringUtils.isBlank(value)) {
+      return null;
+    }
+    final URI url;
+    try {
+      url = new URI(value.trim());
+    } catch (final URISyntaxException e) {
+      throw new IllegalArgumentException(
+          "'problem.type-url' must be an absolute URI, but was: " + value, e);
+    }
+    if (!url.isAbsolute()) {
+      throw new IllegalArgumentException(
+          "'problem.type-url' must be an absolute URI, but was: " + value);
+    }
+    return url;
+  }
 
   /**
    * Logs the throwable for the problem it was turned into.
