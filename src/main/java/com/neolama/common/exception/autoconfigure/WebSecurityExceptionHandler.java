@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration;
@@ -43,10 +44,13 @@ public class WebSecurityExceptionHandler implements SecurityAdvice {
   /**
    * Creates an entry point that forwards authentication failures to the MVC exception resolver.
    *
+   * <p>Not created when the application defines its own {@link AuthenticationEntryPoint}.
+   *
    * @param resolver the MVC exception resolver
    * @return the authentication entry point
    */
   @Bean
+  @ConditionalOnMissingBean(AuthenticationEntryPoint.class)
   AuthenticationEntryPoint authenticationEntryPoint(
       @Qualifier("handlerExceptionResolver") final HandlerExceptionResolver resolver) {
     return new ProblemAuthenticationEntryPoint(resolver);
@@ -56,10 +60,13 @@ public class WebSecurityExceptionHandler implements SecurityAdvice {
    * Creates an access-denied handler that forwards authorization failures to the MVC exception
    * resolver.
    *
+   * <p>Not created when the application defines its own {@link AccessDeniedHandler}.
+   *
    * @param resolver the MVC exception resolver
    * @return the access-denied handler
    */
   @Bean
+  @ConditionalOnMissingBean(AccessDeniedHandler.class)
   AccessDeniedHandler accessDeniedHandler(
       @Qualifier("handlerExceptionResolver") final HandlerExceptionResolver resolver) {
     return new ProblemAccessDeniedHandler(resolver);
