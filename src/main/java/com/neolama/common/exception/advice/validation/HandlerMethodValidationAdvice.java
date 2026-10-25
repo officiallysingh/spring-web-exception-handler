@@ -10,6 +10,7 @@ import com.neolama.common.exception.core.ProblemMessageSourceResolver;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.ClassUtils;
 import org.springframework.context.MessageSourceResolvable;
 import org.springframework.http.HttpStatus;
@@ -31,6 +32,11 @@ import org.springframework.web.method.annotation.HandlerMethodValidationExceptio
  * prefixed with {@code code.}, {@code message.}, or {@code detail.} and the exception simple name.
  * The message falls back to the constraint message and the details to {@code Invalid value for
  * parameter {name}}.
+ *
+ * <p>Message placeholders are the same as for a field of a {@code @Valid} body: {@code {0}} the
+ * parameter name, {@code {1}} the rejected value, {@code {2}} the parameter name as a translatable
+ * value, and {@code {3}} onwards the constraint attributes in alphabetical order, such as max then
+ * min for a size constraint.
  */
 public interface HandlerMethodValidationAdvice extends Exceptional {
 
@@ -78,7 +84,8 @@ public interface HandlerMethodValidationAdvice extends Exceptional {
             result.getMethodParameter().getParameterName(),
             "arg" + result.getMethodParameter().getParameterIndex());
     final String[] errorCodes = Objects.requireNonNullElse(error.getCodes(), new String[0]);
-    final Object[] arguments = {parameterName, result.getArgument()};
+    final Object[] arguments =
+        ArrayUtils.addAll(new Object[] {parameterName, result.getArgument()}, error.getArguments());
     logErrorKeys(prefixed(prefix, errorCodes));
 
     final String code =

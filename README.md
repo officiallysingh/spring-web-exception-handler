@@ -1,56 +1,76 @@
-# Guide to exception handling in Spring MVC applications
+# spring-web-exception-handler
 
 [![Java](https://img.shields.io/badge/java-21-blue.svg)](https://www.oracle.com/java/technologies/)
 [![Spring Boot](https://img.shields.io/badge/spring_boot-4.1.1-blue.svg)](https://spring.io/projects/spring-boot)
-[![Postgres](https://img.shields.io/badge/postgres-latest-blue.svg)](https://www.postgresql.org/)
-[![MongoDB](https://img.shields.io/badge/mongodb-latest-blue.svg)](https://www.mongodb.com/)
+[![Postgres](https://img.shields.io/badge/postgres-supported-blue.svg)](https://www.postgresql.org/)
+[![MongoDB](https://img.shields.io/badge/mongodb-supported-blue.svg)](https://www.mongodb.com/)
 [![Maven](https://img.shields.io/badge/maven-3.9.x-blue.svg)](https://maven.apache.org/)
 
-**A library for handling exceptions in Spring MVC (servlet) applications**, implementing
-[**Problem Details (RFC 7807) for HTTP APIs**](https://datatracker.ietf.org/doc/html/rfc7807).
-Requires **Java 21** and **Spring Boot 4.1+** (Jakarta EE 11).
+**Consistent error responses for Spring Boot servlet (Spring MVC) REST APIs.** Add the dependency and
+every exception your application throws, or Spring throws for it, becomes an
+[RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457) response:
 
-![Exception Handling](https://miro.medium.com/v2/resize:fit:1400/format:webp/1*0s2E6-iNFqr_xptwrmJTdg.jpeg)
+```json
+{
+  "type": "about:blank",
+  "status": 404,
+  "instance": "/api/employees/42",
+  "method": "GET",
+  "code": "employee-not-found",
+  "title": "Not Found",
+  "detail": "Employee 42 not found",
+  "timestamp": "2026-10-25T14:10:42.684674Z"
+}
+```
 
-## Table of Contents
-1. [Introduction](#introduction)
+The wording of every response (`code`, `title`, `detail`) and its `status` can be changed in a
+`properties` file, per exception and per locale, without touching code.
+
+## Contents
+
+1. [Requirements](#requirements)
 2. [Installation](#installation)
-3. [Features](#features)
-4. [Controller advices](#controller-advices)
-   - [General advices](#general-advices)
-   - [DAO advices](#dao-advices)
-   - [Security advices](#security-advices)
-5. [Application configuration](#application-configuration)
-6. [Library properties](#library-properties)
-7. [Error key](#error-key)
-8. [Error response](#error-response)
-9. [Message resolvers](#message-resolvers)
-10. [Message internationalization](#message-internationalization)
-11. [Creating and throwing exceptions](#creating-and-throwing-exceptions)
-12. [Customizations](#customizations)
-    - [Customize messages](#customize-messages)
-    - [Override an advice](#override-an-advice)
-13. [Define new advices](#define-new-advices)
-14. [Testing support](#testing-support)
-15. [Example error responses](#example-error-responses)
+3. [Quick start](#quick-start)
+4. [The error response](#the-error-response)
+5. [Messages and error keys](#messages-and-error-keys)
+6. [Throwing problems from your code](#throwing-problems-from-your-code)
+7. [Handled exceptions](#handled-exceptions)
+8. [Validation errors](#validation-errors)
+9. [Database errors](#database-errors)
+10. [Spring Security](#spring-security)
+11. [Configuration reference](#configuration-reference)
+12. [Customizing](#customizing)
+13. [Logging](#logging)
+14. [Testing your application](#testing-your-application)
+15. [Example responses](#example-responses)
+16. [Limitations](#limitations)
 
-## Introduction
+## Requirements
 
-Exception handling is a cross-cutting concern. Keep it separate from business logic and apply it declaratively.
+* Java 21
+* Spring Boot 4.1+ **servlet** web application (`spring-boot-starter-webmvc`). Reactive (WebFlux)
+  and non-web applications are not supported; the library switches itself off there.
+* Jackson 3, which comes with `spring-boot-starter-webmvc`.
 
-A common practice is to invent a `ServiceException` plus an error-code enum for every failure.
-Unchecked exceptions cover almost every case, so callers do not need `try` / `catch` or `throws`.
-Spring already handles exceptions with `@RestControllerAdvice`. **spring-web-exception-handler** supplies that layer for **Spring MVC** REST applications: add the dependency, describe error attributes in a `properties` file, and the library turns thrown exceptions into a Problem Details response.
+Optional integrations switch on when the matching library is on your classpath:
 
-The error key used to look up those attributes is the exception's simple class name, such as `JobInstanceAlreadyCompleteException`. See [Error key](#error-key). The response body is described in [Error response](#error-response). Application code throws [`ThrowableProblem`](src/main/java/com/neolama/common/exception/core/ThrowableProblem.java) through [`Problems`](src/main/java/com/neolama/common/exception/core/Problems.java).
+| Your application has | You get |
+| --- | --- |
+| `spring-boot-starter-validation` | Validation errors with one entry per failed field or parameter ([Validation errors](#validation-errors)) |
+| `spring-tx` (comes with Spring Data JPA, JDBC, or MongoDB) | Data-integrity and duplicate-key handling ([Database errors](#database-errors)) |
+| PostgreSQL JDBC driver or MongoDB driver | Constraint and index names in error keys |
+| `spring-boot-starter-security` | Authentication and authorization errors ([Spring Security](#spring-security)) |
+
+The web, validation, security, and database libraries are optional dependencies of this library, so
+your application decides which ones, and which versions, it uses.
 
 ## Installation
 
-> **Current version: 0.0.1-SNAPSHOT**
-
-Add the jar. Autoconfiguration registers the advices when the library is on the classpath of a Spring MVC application.
+> **Current version: 0.0.1-SNAPSHOT.** Until a release is published, build and install it into your
+> local Maven repository with `./mvnw install`.
 
 Maven
+
 ```xml
 <dependency>
     <groupId>com.neolama</groupId>
@@ -58,175 +78,157 @@ Maven
     <version>0.0.1-SNAPSHOT</version>
 </dependency>
 ```
+
 Gradle
+
 ```groovy
 implementation 'com.neolama:spring-web-exception-handler:0.0.1-SNAPSHOT'
 ```
 
-The application needs `spring-boot-starter-webmvc`. Security, PostgreSQL, and MongoDB handling switch on when those libraries are present. See [Controller advices](#controller-advices).
+Spring Boot auto-configuration registers everything. There is no annotation to add.
 
-[`WebExceptionHandler`](src/main/java/com/neolama/common/exception/autoconfigure/WebExceptionHandler.java) is always registered and handles general, HTTP, I/O, routing, and validation exceptions. Exceptions with no dedicated advice still get a response: the fallback advice handles `Throwable`, and `code`, `title`, `detail`, and `status` can be set in a `properties` file. A custom advice is useful when the error key or the message placeholders must be built from fields on the exception. Implement [`Exceptional`](src/main/java/com/neolama/common/exception/advice/Exceptional.java) and follow an existing advice in this repository.
+## Quick start
 
-## Features
+1. **Add the dependency** (above).
+2. **Point Spring at your message bundle and the library's bundle.** List the library's
+   `i18n/problems` last, so your messages win:
 
-* `@RestControllerAdvice` implementations for the exceptions Spring MVC applications throw most often.
-* An error response for any other exception, addressed by the exception simple name in a `properties` file.
-* A stable [error response](#error-response): `type`, `title`, `status`, `detail`, `instance`, `method`, `timestamp`, and `code`, plus `violations`, `errors`, or extra attributes when the advice adds them.
-* Message externalization and internationalization through Spring `MessageSource` and `LocaleContextHolder`.
-* [`ProblemModule`](src/main/java/com/neolama/common/exception/jackson/ProblemModule.java) so Jackson writes `HttpStatus` and `HttpMethod` values used on the problem.
-* DAO advices for PostgreSQL and MongoDB constraint failures, and security advices for Spring Security, each gated as described below.
-* Room to override an advice or add one, using the same [`Exceptional`](src/main/java/com/neolama/common/exception/advice/Exceptional.java) contract.
+   ```properties
+   # src/main/resources/application.properties
+   spring.messages.basename=i18n/errors,i18n/problems
+   ```
 
-## Controller advices
+   Spring Boot creates a `MessageSource` only when a bundle named in `spring.messages.basename`
+   (default `messages`) exists. Without one, every response uses the library's built-in defaults.
+3. **Run your application.** Unknown paths, wrong methods, invalid bodies, failed validation, missing
+   parameters, database constraint violations, security failures, and any other exception now return
+   `application/problem+json`. See [Example responses](#example-responses).
+4. **Phrase the errors your API returns** in `src/main/resources/i18n/errors.properties`:
 
-Advice types are interfaces. The autoconfigured `@RestControllerAdvice` classes implement those interfaces. Package root is `com.neolama.common.exception`.
+   ```properties
+   detail.DuplicateKeyException.employees_name_key=An employee with this name already exists
+   status.DuplicateKeyException.employees_name_key=409
+   ```
 
-[`WebExceptionHandler`](src/main/java/com/neolama/common/exception/autoconfigure/WebExceptionHandler.java) implements the general, HTTP, I/O, routing, and validation advice interfaces below.
+   [Messages and error keys](#messages-and-error-keys) explains the keys.
+5. **Throw your own errors** with [`Problems`](#throwing-problems-from-your-code):
 
-### General advices
+   ```java
+   throw Problems.of(AppErrors.EMPLOYEE_NOT_FOUND).detailArgs(id).throwAble();
+   ```
 
-| Advice | Handles | Status | Error key |
-| --- | --- | --- | --- |
-| [**`GeneralAdvice`**](src/main/java/com/neolama/common/exception/advice/general/GeneralAdvice.java) | | | |
-| `├──` [`ThrowableProblemAdvice`](src/main/java/com/neolama/common/exception/advice/general/ThrowableProblemAdvice.java) | [`ThrowableProblem`](src/main/java/com/neolama/common/exception/core/ThrowableProblem.java) | Taken from the problem | Already set when the problem was built |
-| `├──` [`ThrowableAdvice`](src/main/java/com/neolama/common/exception/advice/general/ThrowableAdvice.java) | `Throwable` | `status.{SimpleName}`, or `@ResponseStatus`, or the status of a Spring `ErrorResponse` (e.g. [`503`](https://httpstatus.es/503) for `AsyncRequestTimeoutException`), or [`500`](https://httpstatus.es/500) | Exception simple name |
-| `└──` [`UnsupportedOperationAdvice`](src/main/java/com/neolama/common/exception/advice/general/UnsupportedOperationAdvice.java) | `UnsupportedOperationException` | [`501`](https://httpstatus.es/501) | `UnsupportedOperationException` |
-| [**`HttpAdvice`**](src/main/java/com/neolama/common/exception/advice/http/HttpAdvice.java) | | | |
-| `├──` [`HttpMediaTypeNotAcceptableAdvice`](src/main/java/com/neolama/common/exception/advice/http/HttpMediaTypeNotAcceptableAdvice.java) | `HttpMediaTypeNotAcceptableException` | [`406`](https://httpstatus.es/406) | `HttpMediaTypeNotAcceptableException` |
-| `├──` [`HttpMediaTypeNotSupportedExceptionAdvice`](src/main/java/com/neolama/common/exception/advice/http/HttpMediaTypeNotSupportedExceptionAdvice.java) | `HttpMediaTypeNotSupportedException` | [`415`](https://httpstatus.es/415) | `HttpMediaTypeNotSupportedException` |
-| `├──` [`UnsupportedMediaTypeStatusAdvice`](src/main/java/com/neolama/common/exception/advice/http/UnsupportedMediaTypeStatusAdvice.java) | `UnsupportedMediaTypeStatusException` | [`415`](https://httpstatus.es/415) | `UnsupportedMediaTypeStatusException` |
-| `├──` [`HttpRequestMethodNotSupportedAdvice`](src/main/java/com/neolama/common/exception/advice/http/HttpRequestMethodNotSupportedAdvice.java) | `HttpRequestMethodNotSupportedException` | [`405`](https://httpstatus.es/405) | `HttpRequestMethodNotSupportedException` |
-| `├──` [`MethodNotAllowedAdvice`](src/main/java/com/neolama/common/exception/advice/http/MethodNotAllowedAdvice.java) | `MethodNotAllowedException` | [`405`](https://httpstatus.es/405) | `MethodNotAllowedException` |
-| `├──` [`NotAcceptableStatusAdvice`](src/main/java/com/neolama/common/exception/advice/http/NotAcceptableStatusAdvice.java) | `NotAcceptableStatusException` | [`406`](https://httpstatus.es/406) | `NotAcceptableStatusException` |
-| `└──` [`ResponseStatusAdvice`](src/main/java/com/neolama/common/exception/advice/http/ResponseStatusAdvice.java) | `ResponseStatusException` | Status carried by the exception | `ResponseStatusException` |
-| [**`IOAdvice`**](src/main/java/com/neolama/common/exception/advice/io/IOAdvice.java) | | | |
-| `├──` [`MessageNotReadableAdvice`](src/main/java/com/neolama/common/exception/advice/io/MessageNotReadableAdvice.java) | `HttpMessageNotReadableException` | [`400`](https://httpstatus.es/400) | `HttpMessageNotReadableException`, or keys derived from `InvalidFormatException` |
-| `├──` [`MultipartAdvice`](src/main/java/com/neolama/common/exception/advice/io/MultipartAdvice.java) | `MultipartException` | [`400`](https://httpstatus.es/400) | `MultipartException` |
-| `├──` [`MaxUploadSizeExceededExceptionAdvice`](src/main/java/com/neolama/common/exception/advice/io/MaxUploadSizeExceededExceptionAdvice.java) | `MaxUploadSizeExceededException` | [`400`](https://httpstatus.es/400) | `MaxUploadSizeExceededException` |
-| `└──` [`DataBufferLimitExceptionAdvice`](src/main/java/com/neolama/common/exception/advice/io/DataBufferLimitExceptionAdvice.java) | `DataBufferLimitException` | [`400`](https://httpstatus.es/400) | `DataBufferLimitException` |
-| [**`RoutingAdvice`**](src/main/java/com/neolama/common/exception/advice/routing/RoutingAdvice.java) | | | |
-| `├──` [`MissingRequestHeaderAdvice`](src/main/java/com/neolama/common/exception/advice/routing/MissingRequestHeaderAdvice.java) | `MissingRequestHeaderException` | [`400`](https://httpstatus.es/400) | `MissingRequestHeaderException.{Controller}.{method}.{header}` |
-| `├──` [`MissingServletRequestParameterAdvice`](src/main/java/com/neolama/common/exception/advice/routing/MissingServletRequestParameterAdvice.java) | `MissingServletRequestParameterException` | [`400`](https://httpstatus.es/400) | `MissingServletRequestParameterException.{parameterName}` |
-| `├──` [`MissingServletRequestPartAdvice`](src/main/java/com/neolama/common/exception/advice/routing/MissingServletRequestPartAdvice.java) | `MissingServletRequestPartException` | [`400`](https://httpstatus.es/400) | `MissingServletRequestPartException.{partName}` |
-| `├──` [`NoHandlerFoundAdvice`](src/main/java/com/neolama/common/exception/advice/routing/NoHandlerFoundAdvice.java) | `NoHandlerFoundException` | [`404`](https://httpstatus.es/404) | `NoHandlerFoundException` |
-| `├──` [`NoResourceFoundAdvice`](src/main/java/com/neolama/common/exception/advice/routing/NoResourceFoundAdvice.java) | `NoResourceFoundException` | [`404`](https://httpstatus.es/404) | `NoResourceFoundException` |
-| `└──` [`ServletRequestBindingAdvice`](src/main/java/com/neolama/common/exception/advice/routing/ServletRequestBindingAdvice.java) | `ServletRequestBindingException` | [`400`](https://httpstatus.es/400) | `ServletRequestBindingException` |
-| [**`ValidationAdvice`**](src/main/java/com/neolama/common/exception/advice/validation/ValidationAdvice.java) | | | |
-| `├──` [`ConstraintViolationAdvice`](src/main/java/com/neolama/common/exception/advice/validation/ConstraintViolationAdvice.java) | `ConstraintViolationException` | [`400`](https://httpstatus.es/400) | `ConstraintViolationException` |
-| `├──` [`BindAdvice`](src/main/java/com/neolama/common/exception/advice/validation/BindAdvice.java) | `BindException` | [`400`](https://httpstatus.es/400) | `BindException` |
-| `├──` [`MethodArgumentNotValidAdvice`](src/main/java/com/neolama/common/exception/advice/validation/MethodArgumentNotValidAdvice.java) | `MethodArgumentNotValidException` | [`400`](https://httpstatus.es/400) | `MethodArgumentNotValidException` |
-| `├──` [`MethodArgumentTypeMismatchAdvice`](src/main/java/com/neolama/common/exception/advice/validation/MethodArgumentTypeMismatchAdvice.java) | `MethodArgumentTypeMismatchException` | [`400`](https://httpstatus.es/400) | `MethodArgumentTypeMismatchException.{Controller}.{method}.{parameter}` |
-| `└──` [`TypeMismatchAdvice`](src/main/java/com/neolama/common/exception/advice/validation/TypeMismatchAdvice.java) | `TypeMismatchException` | [`400`](https://httpstatus.es/400) | `TypeMismatchException.{errorCode}.{propertyName}` |
+## The error response
 
-`InvalidFormatException` (Jackson, nested under `HttpMessageNotReadableException`) tries message codes from most specific to least specific:
+Every response is `application/problem+json`, written from
+[`ProblemDetails`](src/main/java/com/neolama/common/exception/core/ProblemDetails.java), an
+extension of Spring's `ProblemDetail`. Fields appear in this order; fields without a value are left
+out.
 
-1. `InvalidFormatException.{package}.{ClassNames}.{property}`
-2. `InvalidFormatException.{ClassNames}.{property}`
-3. `InvalidFormatException.{TargetType}.{property}`
-4. `InvalidFormatException.{property}`
+| Field | Meaning |
+| --- | --- |
+| `type` | Problem type URI. `about:blank` unless [`problem.type-url`](#configuration-reference) is set, then `{type-url}#{code}`. |
+| `status` | HTTP status code, the same as the response status. |
+| `instance` | Request path, such as `/api/employees/42`. |
+| `method` | HTTP method of the request. |
+| `code` | Stable, machine-readable code for this error. |
+| `title` | Short summary, by default the status reason phrase such as `Not Found`. |
+| `detail` | Explanation of this occurrence. |
+| `timestamp` | Time the problem was created, ISO-8601 in UTC. |
+| `violations` | Validation errors only: one entry per failed field or parameter. |
+| `errors` | Problems that bundle several errors: one entry per error. |
 
-### DAO advices
+Entries in `violations` and `errors` have `code`, `message`, and `details`. Extra fields you add with
+`Problems...parameter(name, value)` appear at the top level after `timestamp`.
 
-| Advice | Handles | Status | Error key |
-| --- | --- | --- | --- |
-| [**`DaoAdvice`**](src/main/java/com/neolama/common/exception/advice/dao/DaoAdvice.java) | | | |
-| `├──` [`DataIntegrityViolationAdvice`](src/main/java/com/neolama/common/exception/advice/dao/DataIntegrityViolationAdvice.java) | `DataIntegrityViolationException` | [`500`](https://httpstatus.es/500) | `DataIntegrityViolationException.{constraintName}`, or `DataIntegrityViolationException` when no resolver applies |
-| `└──` [`DuplicateKeyExceptionAdvice`](src/main/java/com/neolama/common/exception/advice/dao/DuplicateKeyExceptionAdvice.java) | `DuplicateKeyException` | [`500`](https://httpstatus.es/500) | `DuplicateKeyException.{constraintName}`, or `DuplicateKeyException` when no resolver applies |
+**Default `code`.** When no `code.{errorKey}` message is configured:
 
-[`WebDaoExceptionHandler`](src/main/java/com/neolama/common/exception/autoconfigure/WebDaoExceptionHandler.java) is the `@RestControllerAdvice` for these exceptions. It is registered when `problem.dao-advice-enabled` is `true` (the default).
+* an error key **without** a dot becomes kebab-case, one segment per capital letter, keeping the
+  `Exception` suffix: `NoResourceFoundException` → `no-resource-found-exception`, `IOException` →
+  `i-o-exception`, `OrderNotFound` → `order-not-found`;
+* an error key **with** a dot becomes the status name: `MissingServletRequestParameterException.page`
+  with status 400 → `bad-request`.
 
-[`DatabaseConstraintResolverConfiguration`](src/main/java/com/neolama/common/exception/autoconfigure/DatabaseConstraintResolverConfiguration.java) registers a [`ConstraintNameResolver`](src/main/java/com/neolama/common/exception/advice/dao/constraint/ConstraintNameResolver.java) under the same condition:
+**Default `detail`.** Server errors (5xx) never show the exception message to clients; it stays in
+the server log. The default is `An unexpected error occurred` unless a `detail.{errorKey}` message is
+configured. Client errors (4xx) use a safe library default or Spring's own client message; see
+[Handled exceptions](#handled-exceptions).
 
-* [`PostgresConstraintNameResolver`](src/main/java/com/neolama/common/exception/advice/dao/constraint/PostgresConstraintNameResolver.java) when `org.postgresql.PGConnection` is on the classpath.
-* [`MongoConstraintNameResolver`](src/main/java/com/neolama/common/exception/advice/dao/constraint/MongoConstraintNameResolver.java) when `com.mongodb.MongoClientSettings` is on the classpath.
+**Headers.** `405` responses carry `Allow` with the supported methods. `415` and `406` responses
+carry `Accept` with the supported media types.
 
-The handler takes the most specific cause of the exception and uses the first resolver whose `supports(cause)` returns `true`: a PostgreSQL JDBC `PSQLException` goes to the PostgreSQL resolver, and a MongoDB driver `MongoException` goes to the MongoDB resolver. When no resolver supports the cause, the error key is the exception simple name alone, such as `DataIntegrityViolationException`, so one generic `detail.DataIntegrityViolationException` entry covers it.
+## Messages and error keys
 
-### Security advices
+Every problem has an **error key**. The library looks up these messages for it, in the
+`MessageSource` and for the request's locale:
 
-| Advice | Handles | Status | Error key |
-| --- | --- | --- | --- |
-| [**`SecurityAdvice`**](src/main/java/com/neolama/common/exception/advice/security/SecurityAdvice.java) | | | |
-| `├──` [`AuthenticationExceptionAdvice`](src/main/java/com/neolama/common/exception/advice/security/AuthenticationExceptionAdvice.java) | `AuthenticationException` | [`401`](https://httpstatus.es/401) | `AuthenticationException` |
-| `├──` [`InsufficientAuthenticationAdvice`](src/main/java/com/neolama/common/exception/advice/security/InsufficientAuthenticationAdvice.java) | `InsufficientAuthenticationException` | [`401`](https://httpstatus.es/401) | `InsufficientAuthenticationException` |
-| `├──` [`BadCredentialsExceptionAdvice`](src/main/java/com/neolama/common/exception/advice/security/BadCredentialsExceptionAdvice.java) | `BadCredentialsException` | [`401`](https://httpstatus.es/401) | `BadCredentialsException` |
-| `├──` [`UsernameNotFoundAdvice`](src/main/java/com/neolama/common/exception/advice/security/UsernameNotFoundAdvice.java) | `UsernameNotFoundException` | [`401`](https://httpstatus.es/401) | `UsernameNotFoundException` |
-| `└──` [`AccessDeniedExceptionAdvice`](src/main/java/com/neolama/common/exception/advice/security/AccessDeniedExceptionAdvice.java) | `AccessDeniedException` | [`403`](https://httpstatus.es/403) | `AccessDeniedException` |
+| Message | Sets | Example |
+| --- | --- | --- |
+| `code.{errorKey}` | `code` | `code.DuplicateKeyException.employees_name_key=employee-name-taken` |
+| `title.{errorKey}` | `title` | `title.DuplicateKeyException.employees_name_key=Duplicate employee` |
+| `detail.{errorKey}` | `detail` | `detail.DuplicateKeyException.employees_name_key=An employee with this name already exists` |
+| `status.{errorKey}` | HTTP status | `status.DuplicateKeyException.employees_name_key=409` |
 
-[`WebSecurityExceptionHandler`](src/main/java/com/neolama/common/exception/autoconfigure/WebSecurityExceptionHandler.java) is registered when `problem.security-advice-enabled` is `true` (the default) and `org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration` is on the classpath.
+A configured message always wins over the library's and your Java defaults. A `status.` value that is
+not a known status code is ignored.
 
-It also publishes:
+### Which error key?
 
-* [`ProblemAuthenticationEntryPoint`](src/main/java/com/neolama/common/exception/advice/security/ProblemAuthenticationEntryPoint.java) as an `AuthenticationEntryPoint` bean
-* [`ProblemAccessDeniedHandler`](src/main/java/com/neolama/common/exception/advice/security/ProblemAccessDeniedHandler.java) as an `AccessDeniedHandler` bean
+| Situation | Error key |
+| --- | --- |
+| Any exception without a more specific key | Simple class name: `IllegalStateException`, `OrderLockedException` |
+| A problem you throw | The key you pass to `Problems.of("...")`, or `ErrorType.getErrorKey()` |
+| Missing query parameter `page` | `MissingServletRequestParameterException.page` |
+| Missing header `X-Tenant` on `OrderController.create` | `MissingRequestHeaderException.OrderController.create.X-Tenant` |
+| Missing multipart part `file` | `MissingServletRequestPartException.file` |
+| Wrong type for parameter `joinedAfter` on `EmployeeController.search` | `MethodArgumentTypeMismatchException.EmployeeController.search.joinedAfter` |
+| Database constraint `employees_name_key` | `DuplicateKeyException.employees_name_key` ([Database errors](#database-errors)) |
+| Field and parameter validation | Several candidate keys, most specific first ([Validation errors](#validation-errors)) |
+| Invalid value in a JSON body | Several candidate keys, most specific first ([Handled exceptions](#invalid-json-values)) |
 
-Wire those beans into the application's `SecurityFilterChain` so authentication and access-denied failures go through the same problem response:
-
-```java
-@Autowired
-private AuthenticationEntryPoint authenticationEntryPoint;
-
-@Autowired
-private AccessDeniedHandler accessDeniedHandler;
-
-@Bean
-public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-    http.csrf(AbstractHttpConfigurer::disable)
-            .authorizeHttpRequests((requests) -> requests
-                .requestMatchers("/swagger-resources/**", "/swagger-ui/**", "/swagger-ui.*", "/v3/api-docs", "/v3/api-docs/**", "/webjars/**")
-                .permitAll()
-                .anyRequest()
-                .authenticated()
-            );
-
-    if (this.authenticationEntryPoint != null) {
-      http.exceptionHandling(
-              exceptionHandling ->
-                      exceptionHandling.authenticationEntryPoint(this.authenticationEntryPoint));
-    }
-    if (this.accessDeniedHandler != null) {
-      http.exceptionHandling(
-              exceptionHandling -> exceptionHandling.accessDeniedHandler(this.accessDeniedHandler));
-    }
-
-    return http.build();
-}
-```
-
-## Application configuration
-
-Unknown paths return `404` with no extra configuration. With Boot's default static resource mapping, Spring MVC throws `NoResourceFoundException`, handled by [`NoResourceFoundAdvice`](src/main/java/com/neolama/common/exception/advice/routing/NoResourceFoundAdvice.java). When static resource mapping is turned off, Spring MVC throws `NoHandlerFoundException` instead, handled by [`NoHandlerFoundAdvice`](src/main/java/com/neolama/common/exception/advice/routing/NoHandlerFoundAdvice.java):
+**To see the exact keys**, set the logger to TRACE while you write your bundle. Every key that is
+looked up is logged, most specific first:
 
 ```properties
-spring.web.resources.add-mappings=false
+logging.level.com.neolama.common.exception.advice.Exceptional=TRACE
 ```
 
-Leave Spring Boot's own problem-details support off. `spring.mvc.problemdetails.enabled` defaults to `false`. Turning it on lets Boot's handler shadow the advices in this library.
-
-```properties
-spring.mvc.problemdetails.enabled=false
+```text
+---------------------- Error Keys ----------------------
+MethodArgumentNotValidException.Size.employee.name
+MethodArgumentNotValidException.Size.name
+MethodArgumentNotValidException.Size.java.lang.String
+MethodArgumentNotValidException.Size
+--------------------------------------------------------
 ```
 
-Disable Boot's MVC error page so it does not replace the problem body:
+Renaming a class, controller method, parameter, field, or database constraint changes the derived
+keys. Update the bundle when that happens.
 
-```java
-@EnableAutoConfiguration(exclude = ErrorMvcAutoConfiguration.class)
-```
+### Placeholders
 
-or
+Messages are `java.text.MessageFormat` patterns. Write a literal single quote as `''`. The arguments
+depend on the error:
 
-```properties
-spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.web.servlet.error.ErrorMvcAutoConfiguration
-```
+| Error | Arguments |
+| --- | --- |
+| A problem you throw | The values passed to `detailArgs(...)` |
+| `405` method not allowed | `{0}` requested method, `{1}` allowed methods |
+| `415` media type not supported | `{0}` request content type, `{1}` supported media types |
+| `406` not acceptable | `{0}` media types that can be produced |
+| Upload or request size limit | `{0}` the limit, readable: `512 B`, `1.5 KB`, `10 MB` |
+| `@Valid` body field, or controller method parameter | `{0}` field or parameter, `{1}` rejected value, `{2}` field or parameter name, `{3}` onwards the constraint attributes in alphabetical order. For `@Size(min = 3, max = 10)`: `{3}` is `10`, `{4}` is `3` |
+| `@Valid` body object (class-level constraint) | `{0}` object name, `{1}` object name, `{2}` onwards the constraint attributes |
+| `ConstraintViolationException` | `{0}` property path, `{1}` invalid value |
 
-Point `MessageSource` at the application bundle and at `i18n/problems`, which ships with this library. Put `i18n/problems` last so application messages win.
+### Languages
 
-```properties
-spring.messages.basename=i18n/errors,i18n/problems
-spring.messages.use-code-as-default-message=true
-```
+Messages are resolved for the request's locale, which Spring Boot reads from `Accept-Language`. A
+request with `Accept-Language: fr` reads `i18n/errors_fr.properties` first and falls back to
+`i18n/errors.properties`.
 
-The bundled file [`i18n/problems.properties`](src/main/resources/i18n/problems.properties) defines:
+### Messages shipped with the library
+
+[`i18n/problems.properties`](src/main/resources/i18n/problems.properties) contains:
 
 ```properties
 detail.ConcurrencyFailureException=Conflicted with another concurrent update, please retry
@@ -234,213 +236,30 @@ detail.UnsupportedOperationException=The requested operation is not supported ye
 detail.MaxUploadSizeExceededException=Upload file size exceeded the maximum allowed limit: {0}
 ```
 
-`ProblemMessageProvider.getMessage` passes a default when a code is missing, so a missing key falls back to that default (HTTP status phrase, exception message, or the built-in detail). `use-code-as-default-message=true` covers lookups that do not pass a default.
+## Throwing problems from your code
 
-## Library properties
+Throw a [`ThrowableProblem`](src/main/java/com/neolama/common/exception/core/ThrowableProblem.java),
+an unchecked exception that carries its response, built with
+[`Problems`](src/main/java/com/neolama/common/exception/core/Problems.java). There are three
+starting points:
 
-These are the only `problem.*` properties. They are declared in [`spring-configuration-metadata.json`](src/main/resources/META-INF/spring-configuration-metadata.json).
-
-```properties
-problem.type-url=http://localhost:8080/problems/help.html
-problem.dao-advice-enabled=true
-problem.security-advice-enabled=true
-```
-
-| Property | Default | Meaning |
-| --- | --- | --- |
-| `problem.type-url` | `http://localhost:8080/problems/help.html` | Help page base URL declared for the library. |
-| `problem.dao-advice-enabled` | `true` | Enables the DAO advice and the PostgreSQL and MongoDB constraint name resolvers. |
-| `problem.security-advice-enabled` | `true` | Enables security exception handling when Spring Security is on the classpath. |
-
-[`ProblemConfiguration`](src/main/java/com/neolama/common/exception/autoconfigure/ProblemConfiguration.java) always registers [`ProblemMessageProvider`](src/main/java/com/neolama/common/exception/autoconfigure/ProblemMessageProvider.java) and [`ProblemModule`](src/main/java/com/neolama/common/exception/jackson/ProblemModule.java).
-
-## Error key
-
-The error key selects `code`, `title`, `detail`, and, where applicable, `status` in the message bundles. It must be unique for each error you want to phrase differently.
-
-For an exception whose advice does not build a more specific key, the key is the **simple class name**:
-
-| Exception | Error key |
+| Start with | Use when |
 | --- | --- |
-| `org.springframework.batch.core.repository.JobInstanceAlreadyCompleteException` | `JobInstanceAlreadyCompleteException` |
-| `org.springframework.web.bind.MethodArgumentNotValidException` | `MethodArgumentNotValidException` |
-| `java.lang.IllegalStateException` | `IllegalStateException` |
+| `Problems.of(ErrorType)` | The error is one of your application's known errors (recommended) |
+| `Problems.of("error.key")` | A one-off error |
+| `Problems.of(problem, others...)` or `Problems.of(collection)` | Several errors in one response |
 
-Some advices append detail so two failures of the same type can have different messages:
+### Error types
 
-| Situation | Error key |
-| --- | --- |
-| Missing query parameter `page` | `MissingServletRequestParameterException.page` |
-| Missing header `X-Request-Id` on `OrderController.create` | `MissingRequestHeaderException.OrderController.create.X-Request-Id` |
-| PostgreSQL constraint `uk_employee_name` | `DataIntegrityViolationException.uk_employee_name` |
-| Type mismatch on property `dateTime` | `TypeMismatchException.{errorCode}.dateTime` |
-| Problem you throw yourself | The key you pass to `Problems.of(...)`, or `ErrorType.getErrorKey()` |
-
-With key `some.error.key`, the bundle entries are:
-
-```properties
-code.some.error.key=some-error
-title.some.error.key=Some Error
-detail.some.error.key=Something has gone wrong, please look into the logs for details
-```
-
-When no dedicated advice sets the status (the `Throwable` fallback, and any key you want to remap), also set:
-
-```properties
-status.some.error.key=400
-```
-
-`status.` is also consulted by advices that start from a default status. A matching `status.{errorKey}` entry replaces that default. The value is the numeric code, for example `409`.
-
-Renaming a class, a controller method, a bean property, or a database constraint changes the derived key. Update the bundle when that happens.
-
-## Error response
-
-Example body:
-
-```json
-{
-  "type": "about:blank",
-  "title": "Internal Server Error",
-  "status": 500,
-  "detail": "A job instance already exists and is complete for parameters={'date':'{value=2023-08-13, type=class java.time.LocalDate, identifying=true}'}.  If you want to run this job again, change the parameters.",
-  "instance": "/api/myjob",
-  "method": "PUT",
-  "timestamp": "2023-08-14T15:15:45.737227Z",
-  "code": "XYZ-001"
-}
-```
-
-`Content-Type` is `application/problem+json` for JSON and `application/problem+xml` for XML.
-
-[`ProblemDetails`](src/main/java/com/neolama/common/exception/core/ProblemDetails.java) extends Spring's `ProblemDetail` and adds `code`, `method`, `timestamp`, `violations`, and `errors`.
-
-* `type` — URI of the problem type. Set to `about:blank`, which is Spring's default when no more specific type is configured.
-* `title` — Short summary, such as `Bad Request`.
-* `status` — HTTP status code, such as `500`.
-* `detail` — Explanation for this occurrence.
-* `instance` — Request URI.
-* `method` — HTTP method of that request.
-* `timestamp` — `OffsetDateTime` when the problem was created (UTC).
-* `code` — Stable code for this error, used in `type`. Prefer letters, digits, `_`, and `-`.
-
-Validation advices add `violations`, a list of [`Problem`](src/main/java/com/neolama/common/exception/core/Problem.java) objects (`code`, `message`, `details`). `Problems.of` with several problems adds `errors`, the same object shape. `Problems` `.parameter(...)` copies extra attributes onto the problem body. Names `type`, `status`, `instance`, `method`, `code`, `title`, `detail`, `timestamp`, `violations`, and `errors` are reserved.
-
-If the bundle has no `code.` entry, the default code is:
-
-* the error key converted to lower-case kebab-case when the key contains no `.`. Every upper-case letter starts a new segment, and the `-exception` suffix is kept  
-  `JobInstanceAlreadyCompleteException` → `job-instance-already-complete-exception`, `IOException` → `i-o-exception`
-* the status name in kebab-case when the key contains a `.`  
-  HTTP 400 → `bad-request`, HTTP 500 → `internal-server-error`
-
-`title` defaults to the status reason phrase. `detail` defaults to the detail passed by the advice (usually `exception.getMessage()`), or `An unexpected error occurred`.
-
-## Message resolvers
-
-Error keys are written at **TRACE** by [`Exceptional`](src/main/java/com/neolama/common/exception/advice/Exceptional.java). Enable that logger while you fill in the bundle:
-
-```properties
-logging.level.com.neolama.common.exception.advice.Exceptional=TRACE
-```
-
-A single key is logged as:
-
-```text
----------------------- Error Keys ----------------------
-JobInstanceAlreadyCompleteException
---------------------------------------------------------
-```
-
-Validation advices log every candidate key, most specific first. Copy the key you want into `errors.properties`:
-
-```properties
-status.JobInstanceAlreadyCompleteException=409
-code.JobInstanceAlreadyCompleteException=Some code
-title.JobInstanceAlreadyCompleteException=Some title
-detail.JobInstanceAlreadyCompleteException=Some message details
-```
-
-For a `ConstraintViolationException` on property `name`, the violation message codes are:
-
-```properties
-detail.ConstraintViolationException.name=User name length should be between 3 and 10
-message.ConstraintViolationException.name=name
-code.ConstraintViolationException.name=400
-```
-
-For `MethodArgumentNotValidException` and `BindException`, field messages use Spring's field-error codes, prefixed by `detail.`, `message.`, or `code.` and the exception simple name. The TRACE log lists those codes. Arguments available to the message are the field name, the rejected value, and the constraint arguments.
-
-When `status.{errorKey}` is set and `code.` / `title.` / `detail.` are omitted:
-
-* **Code** follows the rules in [Error response](#error-response).
-* **Title** is the reason phrase of the resolved status.
-* **Detail** is the exception message, or the advice default.
-
-`status.` is read for every advice that calls `resolveStatus`. The `Throwable` fallback uses it when the exception has no `@ResponseStatus`.
-
-## Message internationalization
-
-[`ProblemMessageProvider`](src/main/java/com/neolama/common/exception/autoconfigure/ProblemMessageProvider.java) resolves messages with `LocaleContextHolder.getLocale()`. Spring Boot's `AcceptHeaderLocaleResolver` reads that locale from the `Accept-Language` header.
-
-An `Accept-Language: fr` request reads `errors_fr.properties` (and `problems_fr.properties` if you add one) from the basenames configured above.
-
-Spring's `MessageSource` treats a single quote in a pattern as a quote delimiter. Escape a literal quote with two single quotes (`''`).
-
-## Creating and throwing exceptions
-
-Throw [`ThrowableProblem`](src/main/java/com/neolama/common/exception/core/ThrowableProblem.java), an unchecked exception that already carries a [`ProblemDetails`](src/main/java/com/neolama/common/exception/core/ProblemDetails.java). [`ThrowableProblemAdvice`](src/main/java/com/neolama/common/exception/advice/general/ThrowableProblemAdvice.java) writes that body.
-
-[`Problems`](src/main/java/com/neolama/common/exception/core/Problems.java) is the builder.
-
-Simplest form: an error key plus a status. `code`, `title`, and `detail` come from the bundle.
+Declare your errors once, as an enum implementing
+[`ErrorType`](src/main/java/com/neolama/common/exception/core/ErrorType.java). It gives each error a
+key, a Java default for `detail`, and a default status. Messages in your bundle still win over both.
 
 ```java
-throw Problems.of("sample.problem").throwAble(HttpStatus.EXPECTATION_FAILED);
-```
-
-```properties
-code.sample.problem=AYX123
-title.sample.problem=Some title
-detail.sample.problem=Some message details
-```
-
-`sample.problem` contains a `.`, so a missing `code.` entry defaults to the status name `expectation-failed`. A missing `title.` entry defaults to `Expectation Failed`. A missing `detail.` entry defaults to `An unexpected error occurred` unless you pass `defaultDetail`.
-
-```java
-throw Problems.of("sample.problem")
-    .defaultDetail("Default details if not found in properties file with param1: {0} and param2: {1}")
-    .detailArgs("P1", "P2")
-    .cause(new IllegalStateException("Artificially induced illegal state"))
-    .throwAble(HttpStatus.EXPECTATION_FAILED);
-```
-
-```properties
-code.sample.problem=404
-title.sample.problem=Some title
-detail.sample.problem=Some details with param one: {0} and param other: {1}
-```
-
-`throwAble()` with no status uses `HttpStatus.INTERNAL_SERVER_ERROR`, unless you started from an [`ErrorType`](src/main/java/com/neolama/common/exception/core/ErrorType.java), in which case it uses `ErrorType.getStatus()`.
-
-Extra attributes:
-
-```java
-throw Problems.of("invalid.request")
-    .defaultDetail("Invalid request received, Please retry with correct input")
-    .parameter("additional-attribute", "Some additional attribute")
-    .throwAble(HttpStatus.BAD_REQUEST);
-```
-
-An enum (or [`DefaultProblem`](src/main/java/com/neolama/common/exception/core/DefaultProblem.java)) can hold the key, the default detail, and the status. Bundle entries for that key still override `detail`, `title`, and `code`.
-
-```java
-@Getter
 public enum AppErrors implements ErrorType {
-
+  EMPLOYEE_NOT_FOUND("employee.not.found", "Employee {0} not found", HttpStatus.NOT_FOUND),
   REMOTE_HOST_NOT_AVAILABLE(
-      "remote.host.not.available",
-      "Looks like something wrong with remote host: {0}",
-      HttpStatus.SERVICE_UNAVAILABLE);
+      "remote.host.not.available", "Remote host {0} is not available", HttpStatus.SERVICE_UNAVAILABLE);
 
   private final String errorKey;
   private final String defaultDetail;
@@ -451,412 +270,764 @@ public enum AppErrors implements ErrorType {
     this.defaultDetail = defaultDetail;
     this.status = status;
   }
-}
-```
-
-```java
-throw Problems.of(AppErrors.REMOTE_HOST_NOT_AVAILABLE)
-    .detailArgs("http://some.remote.host.com")
-    .throwAble();
-```
-
-Several problems in one response use [`Problem`](src/main/java/com/neolama/common/exception/core/Problem.java) (`code`, `message`, `details`). The HTTP status is `207 Multi-Status`, and the list is exposed as `errors`.
-
-```java
-throw Problems.of(
-        Problem.of("500", "Internal Server Error", "First problem"),
-        Problem.of("503", "Service Unavailable", "Second problem"))
-    .throwAble();
-```
-
-`Problem.of(errorKey)` and `Problem.of(errorKey, defaultCode, defaultMessage, defaultDetails)` resolve `code.`, `title.`, and `detail.` for that key before the object is stored. `title.` is stored in `Problem.message` and `detail.` in `Problem.details`.
-
-`@ResponseStatus` on an exception type is honored by the `Throwable` fallback. Other attributes then default from that status, and the error key is still the simple class name.
-
-```java
-@ResponseStatus(HttpStatus.NOT_IMPLEMENTED)
-public class MyException extends RuntimeException {
-}
-```
-
-## Customizations
-
-### Customize messages
-
-The usual customization is the properties file: `code.{errorKey}`, `title.{errorKey}`, `detail.{errorKey}`, and `status.{errorKey}`. See [Message resolvers](#message-resolvers).
-
-### Override an advice
-
-Declare another `@RestControllerAdvice` that implements the same advice interface and give it `@Order(Ordered.HIGHEST_PRECEDENCE)` so it is chosen ahead of [`WebExceptionHandler`](src/main/java/com/neolama/common/exception/autoconfigure/WebExceptionHandler.java).
-
-[`MethodArgumentNotValidAdvice`](src/main/java/com/neolama/common/exception/advice/validation/MethodArgumentNotValidAdvice.java) builds each field problem in `handleFieldError`. Override that method to change how a field violation is turned into a [`Problem`](src/main/java/com/neolama/common/exception/core/Problem.java). The snippet below uses a `@JsonProperty` name in the fallback detail. Message codes still come from Spring's field-error codes:
-
-```java
-@RestControllerAdvice
-@Order(Ordered.HIGHEST_PRECEDENCE)
-class CustomMethodArgumentNotValidAdvice implements MethodArgumentNotValidAdvice {
 
   @Override
-  public Problem handleFieldError(
-      final FieldError fieldError, final Throwable exception, final HttpStatus status) {
-    String field = fieldError.getField();
-    try {
-      if (fieldError.contains(ConstraintViolation.class)) {
-        final ConstraintViolation<?> violation = fieldError.unwrap(ConstraintViolation.class);
-        final Field declaredField = violation.getRootBeanClass().getDeclaredField(field);
-        final JsonProperty annotation = declaredField.getAnnotation(JsonProperty.class);
-        if (annotation != null && annotation.value() != null && !annotation.value().isEmpty()) {
-          field = annotation.value();
-        }
-      }
-    } catch (Exception ignored) {
-      // Keep the Java field name when it cannot be read.
-    }
+  public String getErrorKey() {
+    return this.errorKey;
+  }
 
-    final String prefix = ClassUtils.getShortClassName(exception.getClass());
-    final ProblemMessageSourceResolver codeResolver =
-        ProblemMessageSourceResolver.of(CODE_CODE_PREFIX + prefix, fieldError, status.value());
-    final ProblemMessageSourceResolver messageResolver =
-        ProblemMessageSourceResolver.of(MESSAGE_CODE_PREFIX + prefix, fieldError);
-    final ProblemMessageSourceResolver detailsResolver =
-        ProblemMessageSourceResolver.of(
-            DETAIL_CODE_PREFIX + prefix, fieldError, "Invalid value for property " + field);
-    return Problem.of(
-        ProblemMessageProvider.getMessage(codeResolver),
-        ProblemMessageProvider.getMessage(messageResolver),
-        ProblemMessageProvider.getMessage(detailsResolver));
+  @Override
+  public String getDefaultDetail() {
+    return this.defaultDetail;
+  }
+
+  @Override
+  public HttpStatus getStatus() {
+    return this.status;
   }
 }
 ```
 
-## Define new advices
+```java
+throw Problems.of(AppErrors.EMPLOYEE_NOT_FOUND).detailArgs(id).throwAble();
 
-A new exception type needs an advice only when the key or the message must be computed from the exception. Implement [`Exceptional`](src/main/java/com/neolama/common/exception/advice/Exceptional.java), annotate with `@RestControllerAdvice` and `@Order(Ordered.HIGHEST_PRECEDENCE)`, and return `toResponse(...)` so `type`, `instance`, and `method` are set.
+throw Problems.of(AppErrors.REMOTE_HOST_NOT_AVAILABLE).detailArgs(host).cause(exception).throwAble();
+```
+
+For a single error you can also use `DefaultProblem.of(errorKey, defaultDetail, status)` instead of
+an enum.
+
+### Error keys and options
+
+```java
+throw Problems.of("order.not.placeable")
+    .defaultDetail("Order {0} cannot be placed") // used when detail.order.not.placeable is missing
+    .detailArgs(7)                              // fills {0}
+    .parameter("orderId", 7)                    // extra top-level field in the response
+    .throwAble(HttpStatus.BAD_REQUEST);
+```
+
+`parameter(...)` and `parameters(map)` add fields to the response. The names `type`, `status`,
+`instance`, `method`, `code`, `title`, `detail`, `timestamp`, `violations`, and `errors` are
+reserved. `cause(...)` keeps the original exception for the server log.
+
+### Status
+
+`throwAble(status)` always uses the status you pass. `throwAble()` resolves it:
+
+1. `status.{errorKey}` from your bundle, if set;
+2. otherwise `ErrorType.getStatus()`, if you started from an error type and it is not `null`;
+3. otherwise `500`.
+
+A collection of problems has no single key and uses `500` unless you pass a status.
+
+### Several errors in one response
+
+```java
+throw Problems.of(
+        Problem.of("row-3", "Invalid row", "Row 3: name is missing"),
+        Problem.of("row-7", "Invalid row", "Row 7: date of birth is in the future"))
+    .throwAble(HttpStatus.UNPROCESSABLE_CONTENT);
+```
+
+The problems are listed under `errors`. `Problem.of("error.key")` resolves its `code`, `message`, and
+`details` from `code.`, `title.`, and `detail.` messages for that key.
+
+### Do not reuse a thrown problem
+
+Build a new `ThrowableProblem` for every failure. Do not keep one in a field and throw it again: the
+response writes the request path and method onto the instance, and its timestamp is the time it was
+created. Reuse the `ErrorType` instead.
+
+### Your own exception classes
+
+Exceptions without a dedicated advice are handled too. Their error key is the simple class name, and
+their status comes from `status.{SimpleName}`, then `@ResponseStatus` on the class or its cause, then
+`500`:
+
+```java
+@ResponseStatus(HttpStatus.CONFLICT)
+public class OrderLockedException extends RuntimeException {
+  public OrderLockedException(String message) {
+    super(message);
+  }
+}
+```
+
+Spring's `ResponseStatusException` also works: its status is used, and its reason becomes the detail.
+
+## Handled exceptions
+
+The advices live in [`advice`](src/main/java/com/neolama/common/exception/advice). Every status can
+be changed with `status.{errorKey}`. "Spring's message" means the exception's own message, which is
+safe to show for these client errors.
+
+### General
+
+| Exception | Status | Error key | Default detail |
+| --- | --- | --- | --- |
+| `ThrowableProblem` | As built | As built | As built |
+| `UnsupportedOperationException` | `501` | `UnsupportedOperationException` | `The requested operation is not supported yet` (shipped bundle) |
+| `ResponseStatusException` | Its status; an unknown code becomes `400` or `500` | `ResponseStatusException` | Its reason, or the status reason phrase |
+| Any other exception | `@ResponseStatus`, the status of a Spring `ErrorResponse` (such as `503` for `AsyncRequestTimeoutException`), or `500` | Simple class name | 5xx: `An unexpected error occurred`. 4xx: the exception message |
+
+### HTTP
+
+| Exception | Status | Error key | Default detail |
+| --- | --- | --- | --- |
+| `HttpRequestMethodNotSupportedException`, `MethodNotAllowedException` | `405` + `Allow` | Simple class name | `Requested Method: {0} not allowed, allowed methods are: {1}` |
+| `HttpMediaTypeNotSupportedException`, `UnsupportedMediaTypeStatusException` | `415` + `Accept` | Simple class name | `Media Type: {0} Not Supported, Supported Media Types are: {1}` |
+| `HttpMediaTypeNotAcceptableException`, `NotAcceptableStatusException` | `406` + `Accept` | Simple class name | `Media Type Not Acceptable, except: {0}` |
+
+### Request routing
+
+| Exception | Status | Error key | Default detail |
+| --- | --- | --- | --- |
+| `NoResourceFoundException` (unknown path) | `404` | `NoResourceFoundException` | `No resource found for GET /api/unknown` |
+| `NoHandlerFoundException` (unknown path, with `spring.web.resources.add-mappings=false`) | `404` | `NoHandlerFoundException` | Spring's message |
+| `MissingServletRequestParameterException` | `400` | `MissingServletRequestParameterException.{parameter}` | Spring's message |
+| `MissingRequestHeaderException` | `400` | `MissingRequestHeaderException.{Controller}.{method}.{header}` | Spring's message |
+| `MissingServletRequestPartException` | `400` | `MissingServletRequestPartException.{part}` | Spring's message |
+| Other `ServletRequestBindingException`, such as a missing cookie | `400`, or the exception's own status | Simple class name | Spring's message |
+
+### Request body and uploads
+
+| Exception | Status | Error key | Default detail |
+| --- | --- | --- | --- |
+| `HttpMessageNotReadableException` (malformed JSON) | `400` | `HttpMessageNotReadableException` | `Malformed request body` |
+| Invalid value in a JSON body (Jackson `InvalidFormatException`) | `400` | [Candidate keys](#invalid-json-values) | `Malformed request body` |
+| `MaxUploadSizeExceededException` | `400` | `MaxUploadSizeExceededException` | `Upload file size exceeded the maximum allowed limit: {0}` |
+| `DataBufferLimitException` | `400` | `DataBufferLimitException` | `Request data exceeded the allowed limit: {0}` |
+| Other `MultipartException` | `400` | `MultipartException` | Spring's message |
+
+#### Invalid JSON values
+
+For a value that cannot be read, such as `"dateOfBirth": "31-12-1990"` for a `LocalDate` field
+`dateOfBirth` in `com.example.Employee`, these keys are tried in order:
+
+1. `InvalidFormatException.com.example.Employee.dateOfBirth`
+2. `InvalidFormatException.Employee.dateOfBirth`
+3. `InvalidFormatException.LocalDate.dateOfBirth`
+4. `InvalidFormatException.dateOfBirth`
+5. `InvalidFormatException`
+
+Nested objects add their class names in order, such as `InvalidFormatException.Employee.Address.zip`.
+A list element reports under the list field. The default code is `bad-request`.
+
+### Validation, database, and security
+
+See [Validation errors](#validation-errors), [Database errors](#database-errors), and
+[Spring Security](#spring-security).
+
+## Validation errors
+
+Validation responses have status `400`, the detail `Request validation failed`, and a `violations`
+list with one entry per failure. Each entry has:
+
+* `code`: from `code.` messages, by default `400`;
+* `message`: from `message.` messages, by default the constraint message such as
+  `must not be blank`;
+* `details`: from `detail.` messages, by default `Invalid value for property {field}` or
+  `Invalid value for parameter {name}`.
+
+| Where the constraint is | Exception | Message keys for each violation |
+| --- | --- | --- |
+| A `@Valid @RequestBody` or `@ModelAttribute` field | `MethodArgumentNotValidException` | `{prefix}.MethodArgumentNotValidException.{code}` for each Spring field-error code, such as `Size.employee.name`, `Size.name`, `Size.java.lang.String`, `Size` |
+| A binding error you raise | `BindException` | `{prefix}.BindException.{code}` as above |
+| A controller method parameter, such as `@RequestParam @Min(0) int page` | `HandlerMethodValidationException` | `{prefix}.HandlerMethodValidationException.{code}`, such as `Min.page`, `Min.int`, `Min` |
+| A method of a `@Validated` bean | `ConstraintViolationException` | `{prefix}.ConstraintViolationException.{propertyPath}`, such as `list.page` |
+
+`{prefix}` is `code`, `message`, or `detail`. For example:
+
+```properties
+message.MethodArgumentNotValidException.Size.employee.name=Name must be {4} to {3} characters long
+detail.HandlerMethodValidationException.Min.page=Page must be 0 or more, got {1}
+```
+
+The [TRACE log](#which-error-key) lists the exact keys of every violation.
+
+Values that cannot be converted to the parameter's type, such as `?joinedAfter=yesterday` for a
+`LocalDate`, return `400` with `Invalid value for parameter joinedAfter`
+(`MethodArgumentTypeMismatchException`) or `Invalid value for property ...` (`TypeMismatchException`).
+
+## Database errors
+
+Needs `spring-tx` on the classpath. Spring translates driver errors into
+`DataIntegrityViolationException` or its subclass `DuplicateKeyException`; both return:
+
+* status `500`, unless you configure one;
+* error key `{Exception}.{constraint}` when the constraint is known, otherwise the exception name
+  alone;
+* detail `The request conflicts with existing data`. The database's own message, which can contain
+  data values, is never sent to clients.
+
+| Database | Constraint name | Example error key |
+| --- | --- | --- |
+| PostgreSQL (JDBC driver) | The constraint the server reports | `DuplicateKeyException.employees_name_key` |
+| MongoDB | `{collection}.{index}` from a duplicate-key error | `DuplicateKeyException.states.name_1` |
+| Anything else, or no constraint (such as a NOT NULL violation) | None | `DataIntegrityViolationException` |
+
+```properties
+status.DuplicateKeyException.employees_name_key=409
+code.DuplicateKeyException.employees_name_key=employee-name-taken
+detail.DuplicateKeyException.employees_name_key=An employee with this name already exists
+
+# Covers every other data-integrity failure
+detail.DataIntegrityViolationException=The data violates a database rule
+```
+
+## Spring Security
+
+With `spring-boot-starter-security` on the classpath:
+
+| Exception | Status | Default detail |
+| --- | --- | --- |
+| `AuthenticationException` and its subclasses, such as `BadCredentialsException` and `InsufficientAuthenticationException` | `401` | Spring's message |
+| `UsernameNotFoundException` | `401` | `Bad credentials`, so the response does not reveal whether the user exists |
+| `AccessDeniedException` and its subclasses, such as `AuthorizationDeniedException` and CSRF failures | `403` | Spring's message |
+
+The advices handle these exceptions when they are thrown inside a controller. **Failures in the
+security filter chain**, such as missing credentials or a missing role, happen before any controller.
+To return problems for them too, set the library's entry point and access-denied handler on your
+filter chain. The library provides both as beans:
+
+```java
+@Configuration
+class SecurityConfig {
+
+  @Bean
+  SecurityFilterChain securityFilterChain(
+      final HttpSecurity http,
+      final AuthenticationEntryPoint authenticationEntryPoint,
+      final AccessDeniedHandler accessDeniedHandler) {
+    return http.authorizeHttpRequests(
+            auth -> auth.requestMatchers("/actuator/health").permitAll().anyRequest().authenticated())
+        .httpBasic(Customizer.withDefaults())
+        .exceptionHandling(
+            handling ->
+                handling
+                    .authenticationEntryPoint(authenticationEntryPoint)
+                    .accessDeniedHandler(accessDeniedHandler))
+        .build();
+  }
+}
+```
+
+If your application defines its own `AuthenticationEntryPoint` or `AccessDeniedHandler` bean, the
+library does not create its own of that type.
+
+## Configuration reference
+
+### Library properties
+
+| Property | Default | Meaning |
+| --- | --- | --- |
+| `problem.type-url` | not set | Base URL of a page that documents your error codes. When set, `type` becomes `{type-url}#{code}`, such as `https://example.com/problems#employee-not-found`. Must be an absolute URI; the application fails to start otherwise. |
+| `problem.dao-advice-enabled` | `true` | Set to `false` to turn off [database error](#database-errors) handling. The fallback then handles those exceptions. |
+| `problem.security-advice-enabled` | `true` | Set to `false` to turn off [Spring Security](#spring-security) handling and the entry point and access-denied handler beans. |
+
+### Spring properties that matter
+
+| Property | Set to | Why |
+| --- | --- | --- |
+| `spring.messages.basename` | `i18n/errors,i18n/problems` (your bundles first) | Without it no message bundle is used. |
+| `spring.mvc.problemdetails.enabled` | `false` (the default) | `true` makes Spring Boot's own handler answer instead of this library: no `code`, no `method`, no messages. |
+| `spring.web.resources.add-mappings` | Leave as is | With static resource mapping turned off, unknown paths raise `NoHandlerFoundException` instead of `NoResourceFoundException`. Both return `404`. |
+
+Spring Boot's error page (`ErrorMvcAutoConfiguration`) does not need to be turned off. It never
+replaces a problem response.
+
+### Auto-configurations
+
+From [`AutoConfiguration.imports`](src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports).
+All of them load only in servlet web applications.
+
+| Auto-configuration | Provides | Extra condition |
+| --- | --- | --- |
+| [`ProblemConfiguration`](src/main/java/com/neolama/common/exception/autoconfigure/ProblemConfiguration.java) | Message lookups and the Jackson module for status and method values | |
+| [`WebExceptionHandler`](src/main/java/com/neolama/common/exception/autoconfigure/WebExceptionHandler.java) | General, HTTP, routing, body, and validation handling | |
+| [`WebDaoExceptionHandler`](src/main/java/com/neolama/common/exception/autoconfigure/WebDaoExceptionHandler.java) | Database error handling | `spring-tx` present, `problem.dao-advice-enabled` not `false` |
+| [`DatabaseConstraintResolverConfiguration`](src/main/java/com/neolama/common/exception/autoconfigure/DatabaseConstraintResolverConfiguration.java) | PostgreSQL and MongoDB constraint name resolvers | As above, plus the driver |
+| [`WebSecurityExceptionHandler`](src/main/java/com/neolama/common/exception/autoconfigure/WebSecurityExceptionHandler.java) | Security handling, entry point, access-denied handler | Spring Security present, `problem.security-advice-enabled` not `false` |
+
+## Customizing
+
+**Change the wording or status:** use messages ([Messages and error keys](#messages-and-error-keys)).
+That covers most needs.
+
+**Handle an exception differently:** declare your own `@RestControllerAdvice` with an
+`@ExceptionHandler` for it. Your advice is consulted before the library's, so it wins for the
+exceptions it handles. No `@Order` is needed. An advice of yours that handles `Exception` or
+`Throwable` takes over everything.
+
+**Change one part of an existing handler:** implement the library's advice interface and override the
+method you want. For example, to show the field name in every body-validation violation:
 
 ```java
 @RestControllerAdvice
-@Order(Ordered.HIGHEST_PRECEDENCE)
-public class MyCustomAdvice implements Exceptional {
+class EmployeeValidationAdvice implements MethodArgumentNotValidAdvice {
+
+  @Override
+  public Problem handleFieldError(
+      final FieldError fieldError, final Throwable exception, final HttpStatus status) {
+    final Problem problem =
+        MethodArgumentNotValidAdvice.super.handleFieldError(fieldError, exception, status);
+    problem.setDetails(fieldError.getField() + ": " + problem.getMessage());
+    return problem;
+  }
+}
+```
+
+**Add a handler for your own exception** when the error key or message arguments must come from the
+exception. Implement [`Exceptional`](src/main/java/com/neolama/common/exception/advice/Exceptional.java),
+which provides status resolution, message lookup, logging, and the request fields:
+
+```java
+@RestControllerAdvice
+class PaymentAdvice implements Exceptional {
 
   @ExceptionHandler
-  public ProblemDetails handleMyCustomException(
-      final MyCustomException exception, final NativeWebRequest request) {
-    final String errorKey = exception.getClass().getSimpleName();
+  ProblemDetails handlePaymentDeclined(
+      final PaymentDeclinedException exception, final NativeWebRequest request) {
+    final String errorKey = "PaymentDeclinedException." + exception.getReasonCode();
+    final HttpStatus status = resolveStatus(errorKey, HttpStatus.PAYMENT_REQUIRED);
     final ProblemDetails problemDetails =
-        toProblemDetails(errorKey, HttpStatus.BAD_REQUEST, exception.getMessage());
+        toProblemDetails(errorKey, status, "Payment was declined: {0}", exception.getReasonCode());
     return toResponse(problemDetails, request, exception);
   }
 }
 ```
 
-If the key can stay as the simple class name and the status is fixed, `@ResponseStatus` plus bundle entries are enough and this class is unnecessary. [`ThrowableAdvice`](src/main/java/com/neolama/common/exception/advice/general/ThrowableAdvice.java) will handle it.
+If the error key can stay the simple class name and the status is fixed, you need no handler:
+annotate the exception with `@ResponseStatus` and add messages.
 
-## Testing support
+Your own advices do not set `type` from `problem.type-url`. Override `typeUrl()` from `Exceptional` if
+they should.
 
-Autoconfiguration classes, from [`AutoConfiguration.imports`](src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports):
+## Logging
 
-| Configuration | Role |
-| --- | --- |
-| [`ProblemConfiguration`](src/main/java/com/neolama/common/exception/autoconfigure/ProblemConfiguration.java) | `ProblemMessageProvider` and `ProblemModule` |
-| [`WebExceptionHandler`](src/main/java/com/neolama/common/exception/autoconfigure/WebExceptionHandler.java) | General, HTTP, I/O, routing, and validation advices |
-| [`DatabaseConstraintResolverConfiguration`](src/main/java/com/neolama/common/exception/autoconfigure/DatabaseConstraintResolverConfiguration.java) | PostgreSQL and MongoDB constraint name resolvers |
-| [`WebDaoExceptionHandler`](src/main/java/com/neolama/common/exception/autoconfigure/WebDaoExceptionHandler.java) | DAO advices |
-| [`WebSecurityExceptionHandler`](src/main/java/com/neolama/common/exception/autoconfigure/WebSecurityExceptionHandler.java) | Security advices and the entry point / access-denied handler |
+Everything is logged by `com.neolama.common.exception.advice.Exceptional`:
 
-`@WebMvcTest` does not always apply library autoconfiguration. Import the classes the test needs:
+| Status | Level | What |
+| --- | --- | --- |
+| 5xx | ERROR | One line plus the stack trace |
+| 4xx | WARN | One line, no stack trace |
+| 4xx | DEBUG | The stack trace, when DEBUG is enabled |
+| any | TRACE | The [error keys](#which-error-key) that are looked up |
+
+```text
+ERROR ... : GET /api/reports — 500 illegal-state-exception: IllegalStateException: Connection to report-db.internal:5432 refused
+java.lang.IllegalStateException: Connection to report-db.internal:5432 refused
+	at ...
+WARN  ... : GET /api/unknown — 404 no-resource-found-exception: NoResourceFoundException: No static resource api/unknown for request '/api/unknown'.
+```
+
+The log line keeps the exception message that the 5xx response hides.
+
+## Testing your application
+
+`@SpringBootTest` applies the library like a running application, with no extra setup.
+
+`@WebMvcTest` loads only Spring MVC's own auto-configurations, so without extra setup exceptions
+escape your test instead of becoming problem responses. Import the library's auto-configurations
+your test needs:
 
 ```java
-@TestConfiguration
-@ImportAutoConfiguration(
-    classes = {
-      ProblemConfiguration.class,
-      WebExceptionHandler.class
-      // WebSecurityExceptionHandler.class
-      // WebDaoExceptionHandler.class
-      // DatabaseConstraintResolverConfiguration.class
-    })
-public class WebTestConfiguration {
+@WebMvcTest(EmployeeController.class)
+@ImportAutoConfiguration({ProblemConfiguration.class, WebExceptionHandler.class})
+class EmployeeControllerTest {
+
+  @Autowired private MockMvc mockMvc;
+
+  @MockitoBean private EmployeeService employeeService;
+
+  // ...
 }
 ```
 
-```java
-@WebMvcTest(MyController.class)
-@ImportAutoConfiguration(classes = {WebTestConfiguration.class})
-class StateControllerTest {
+Add `WebDaoExceptionHandler.class` and `DatabaseConstraintResolverConfiguration.class` for database
+errors, and `WebSecurityExceptionHandler.class` for security errors.
 
-  @Autowired
-  private MockMvc mockMvc;
+`Problems` also works in plain unit tests without Spring: problems then get the Java defaults, since
+no message bundle is loaded.
 
-  @MockitoBean
-  private MyService myService;
+## Example responses
 
-  @Test
-  @DisplayName("Test Create Resource successfully")
-  void testCreateResource_Success() throws Exception {
-  }
-}
+Real responses from a demo application with this message bundle:
+
+```properties
+message.MethodArgumentNotValidException.Size.employee.name=Name must be {4} to {3} characters long
+detail.HandlerMethodValidationException.Min.page=Page must be 0 or more, got {1}
+code.DuplicateKeyException.employees_name_key=employee-name-taken
+status.DuplicateKeyException.employees_name_key=409
+detail.DuplicateKeyException.employees_name_key=An employee with this name already exists
+status.DuplicateKeyException.states.name_1=409
+detail.DuplicateKeyException.states.name_1=A state with this name already exists
+detail.InvalidFormatException.dateOfBirth=Date of birth must be a date like 1990-12-31
+code.employee.not.found=employee-not-found
+detail.invalid.order=Order {0} has no items
 ```
 
-## Example error responses
-**Following are example error responses in different scenarios.**
-The error response attributes `code`, `title` and `detail` can be customized for each error by specifying
-the same in `errors.properties` file for different error keys. Enable TRACE logging on `com.neolama.common.exception.advice.Exceptional` to see those keys.
+### Invalid request body (`@Valid`)
 
-### Constraint violations
-#### Jakarta Constraint violations error
+`POST /api/employees` with `{"name":"Al","designation":"Senior","address":{"state":""}}`:
+
 ```json
 {
   "type": "about:blank",
-  "title": "Bad Request",
   "status": 400,
-  "detail": "Constraint violations has happened, please correct the request and try again",
-  "instance": "/problems/handler-constraint-violation",
-  "method": "POST",
-  "timestamp": "2023-10-29T16:41:59.876471+05:30",
-  "code": "constraint-violations",
-  "violations": [
-    {
-      "code": "400",
-      "detail": "User name length should be between 3 and 10",
-      "propertyPath": "name"
-    },
-    {
-      "code": "400",
-      "detail": "Address state name is required",
-      "propertyPath": "address.state"
-    },
-    {
-      "code": "400",
-      "detail": "User designation length should be between 2 and 5",
-      "propertyPath": "designation"
-    }
-  ]
-}
-```
-
-#### PostgresDB Unique constraint violation error
-```json
-{
-  "type": "about:blank",
-  "title": "Internal Server Error",
-  "status": 500,
-  "detail": "Employee name must be unique, a record with given name already exists",
   "instance": "/api/employees",
   "method": "POST",
-  "timestamp": "2023-10-29T16:44:10.917194+05:30",
-  "code": "internal-server-error"
-}
-```
-
-#### MongoDB Unique constraint violation error
-```json
-{
-  "type": "about:blank",
-  "title": "Internal Server Error",
-  "status": 500,
-  "detail": "State name must be unique",
-  "instance": "/api/states",
-  "method": "POST",
-  "timestamp": "2023-10-29T16:44:44.806613+05:30",
-  "code": "internal-server-error"
-}
-```
-
-#### Invalid Query parameters
-```json
-{
-  "type": "about:blank",
+  "code": "method-argument-not-valid-exception",
   "title": "Bad Request",
-  "status": 400,
-  "detail": "Constraint violations has happened, please correct the request and try again",
-  "instance": "/problems/handler-invalid-query-strings",
-  "method": "GET",
-  "timestamp": "2023-10-29T14:51:37.889537+05:30",
-  "code": "constraint-violations",
+  "detail": "Request validation failed",
+  "timestamp": "2026-10-25T14:10:42.619831Z",
   "violations": [
     {
       "code": "400",
-      "detail": "must be greater than or equal to 0",
-      "propertyPath": "page"
+      "message": "must not be blank",
+      "details": "Invalid value for property address.state"
+    },
+    {
+      "code": "400",
+      "message": "size must be between 2 and 5",
+      "details": "Invalid value for property designation"
+    },
+    {
+      "code": "400",
+      "message": "Name must be 3 to 10 characters long",
+      "details": "Invalid value for property name"
     }
   ]
 }
 ```
 
-#### Invalid format error
+### Invalid query parameter
+
+`GET /api/employees?page=-1` with `@RequestParam @Min(0) int page`:
+
 ```json
 {
   "type": "about:blank",
-  "title": "Bad Request",
   "status": 400,
-  "detail": "Invalid date time value or format. Expected a valid date time in ISO format",
-  "instance": "/problems/handler-datetime-conversion",
+  "instance": "/api/employees",
   "method": "GET",
-  "timestamp": "2023-10-29T16:05:09.953099+05:30",
-  "code": "400",
-  "propertyPath": "dateTime"
-}
-```
-
-#### File upload max size exceeds error
-```json
-{
-  "type": "about:blank",
+  "code": "handler-method-validation-exception",
   "title": "Bad Request",
+  "detail": "Request validation failed",
+  "timestamp": "2026-10-25T14:13:45.239681Z",
+  "violations": [
+    {
+      "code": "400",
+      "message": "must be greater than or equal to 0",
+      "details": "Page must be 0 or more, got -1"
+    }
+  ]
+}
+```
+
+### Missing query parameter
+
+`GET /api/employees` without `page`:
+
+```json
+{
+  "type": "about:blank",
   "status": 400,
-  "detail": "Upload file size exceeded the maximum allowed limit: 10485760B",
-  "instance": "/problems/uploadfile",
-  "method": "POST",
-  "timestamp": "2023-10-29T14:31:33.073971+05:30",
-  "code": "max-upload-size-exceeded-exception"
-}
-```
-
-### Spring framework thrown exceptions
-#### Invalid Media type error
-```json
-{
-  "type": "about:blank",
-  "title": "Unsupported Media Type",
-  "status": 415,
-  "detail": "Media Type: application/xml Not Acceptable, Supported Media Types are: application/json",
-  "instance": "/problems/handler-json-body",
-  "method": "POST",
-  "timestamp": "2023-10-29T14:45:47.467268+05:30",
-  "code": "http-media-type-not-supported-exception"
-}
-```
-
-#### Method not allowed error
-```json
-{
-  "type": "about:blank",
-  "title": "Method Not Allowed",
-  "status": 405,
-  "detail": "Requested Method: POST not allowed, allowed methods are: GET, PUT",
-  "instance": "/problems/handler-datetime-conversion",
-  "method": "POST",
-  "timestamp": "2023-10-29T16:15:08.916369+05:30",
-  "code": "http-request-method-not-supported-exception"
-}
-```
-
-### Programmatically thrown exceptions
-#### Any unhandled Throwable
-```json
-{
-  "type": "about:blank",
-  "title": "Internal Server Error",
-  "status": 500,
-  "detail": "Expected argument invalid",
-  "instance": "/problems/handler-throwable",
+  "instance": "/api/employees",
   "method": "GET",
-  "timestamp": "2023-10-29T14:49:40.998497+05:30",
-  "code": "illegal-argument-exception"
-}
-```
-
-#### Error with dynamic additional attributes
-```json
-{
-  "type": "about:blank",
+  "code": "bad-request",
   "title": "Bad Request",
-  "status": 400,
-  "detail": "Invalid request received, Please retry with correct input",
-  "instance": "/problems/throw-problem-with-additional-attribute",
-  "method": "GET",
-  "timestamp": "2023-10-29T16:24:37.976724+05:30",
-  "code": "3456",
-  "additional-attribute": "Some additional attribute"
+  "detail": "Required request parameter 'page' for method parameter type int is not present",
+  "timestamp": "2026-10-25T14:10:42.739644Z"
 }
 ```
 
-#### Multiple errors
+### Parameter of the wrong type
+
+`GET /api/employees/search?joinedAfter=yesterday` with a `LocalDate` parameter:
+
 ```json
 {
   "type": "about:blank",
-  "title": "Multi-Status",
-  "status": 207,
-  "detail": "Multi-Status",
-  "instance": "/problems/throw-multiple-problems",
+  "status": 400,
+  "instance": "/api/employees/search",
   "method": "GET",
-  "timestamp": "2023-10-29T16:22:53.363785+05:30",
-  "code": "207",
+  "code": "bad-request",
+  "title": "Bad Request",
+  "detail": "Invalid value for parameter joinedAfter",
+  "timestamp": "2026-10-25T14:10:42.667781Z"
+}
+```
+
+### Invalid value in the JSON body
+
+`POST /api/employees` with `{"name":"Alice","dateOfBirth":"31-12-1990"}`:
+
+```json
+{
+  "type": "about:blank",
+  "status": 400,
+  "instance": "/api/employees",
+  "method": "POST",
+  "code": "bad-request",
+  "title": "Bad Request",
+  "detail": "Date of birth must be a date like 1990-12-31",
+  "timestamp": "2026-10-25T14:10:42.674176Z"
+}
+```
+
+### Malformed JSON
+
+`POST /api/employees` with `{"name": Alice}`:
+
+```json
+{
+  "type": "about:blank",
+  "status": 400,
+  "instance": "/api/employees",
+  "method": "POST",
+  "code": "http-message-not-readable-exception",
+  "title": "Bad Request",
+  "detail": "Malformed request body",
+  "timestamp": "2026-10-25T14:10:42.679337Z"
+}
+```
+
+### Error type thrown from code
+
+`throw Problems.of(AppErrors.EMPLOYEE_NOT_FOUND).detailArgs(42).throwAble();`
+
+```json
+{
+  "type": "about:blank",
+  "status": 404,
+  "instance": "/api/employees/42",
+  "method": "GET",
+  "code": "employee-not-found",
+  "title": "Not Found",
+  "detail": "Employee 42 not found",
+  "timestamp": "2026-10-25T14:10:42.684674Z"
+}
+```
+
+### Problem with an extra field
+
+`throw Problems.of("invalid.order").defaultDetail("Order {0} cannot be placed").detailArgs(7).parameter("orderId", 7).throwAble(HttpStatus.BAD_REQUEST);`
+
+```json
+{
+  "type": "about:blank",
+  "status": 400,
+  "instance": "/api/orders",
+  "method": "POST",
+  "code": "bad-request",
+  "title": "Bad Request",
+  "detail": "Order 7 has no items",
+  "timestamp": "2026-10-25T14:10:42.711462Z",
+  "orderId": 7
+}
+```
+
+### Several errors
+
+The `Problems.of(...)` example from [Several errors in one response](#several-errors-in-one-response):
+
+```json
+{
+  "type": "about:blank",
+  "status": 422,
+  "instance": "/api/imports",
+  "method": "POST",
+  "code": "422",
+  "title": "Unprocessable Content",
+  "detail": "Unprocessable Content",
+  "timestamp": "2026-10-25T14:10:42.715535Z",
   "errors": [
     {
-      "code": "500",
-      "title": "Internal Server Error",
-      "detail": "Sample error message defined in 'errors.properties'"
+      "code": "row-3",
+      "message": "Invalid row",
+      "details": "Row 3: name is missing"
     },
     {
-      "code": "503",
-      "title": "Service Unavailable",
-      "detail": "Looks like something wrong with remote host: http://some.remote.host.com"
-    },
-    {
-      "code": "3456",
-      "title": "Bad Request",
-      "detail": "Invalid request received, Please retry with correct input",
-      "additional-attribute": "Some additional attribute"
-    },
-    {
-      "code": "500",
-      "title": "Internal Server Error",
-      "detail": "Just for testing exception"
-    },
-    {
-      "code": "111",
-      "title": "Dummy",
-      "detail": "Hardcode attributes broblem"
+      "code": "row-7",
+      "message": "Invalid row",
+      "details": "Row 7: date of birth is in the future"
     }
   ]
 }
 ```
 
-### OpenAPI Specification violation error
+### PostgreSQL unique constraint
+
+`DuplicateKeyException` caused by `duplicate key value violates unique constraint "employees_name_key"`:
+
 ```json
 {
   "type": "about:blank",
-  "title": "Bad Request",
-  "status": 400,
-  "detail": "Constraint violations has happened, please correct the request and try again",
-  "instance": "/api/pets",
+  "status": 409,
+  "instance": "/api/employees/import",
   "method": "POST",
-  "timestamp": "2023-10-29T16:06:18.335463+05:30",
-  "code": "constraint-violations",
-  "violations": [
-    {
-      "code": "400",
-      "detail": "[Path '/id'] Numeric instance is lower than the required minimum (minimum: 1, found: 0)",
-      "propertyPath": "id"
-    }
-  ]
+  "code": "employee-name-taken",
+  "title": "Conflict",
+  "detail": "An employee with this name already exists",
+  "timestamp": "2026-10-25T14:10:42.692239Z"
 }
 ```
 
-### Security error
+### MongoDB unique index
+
+`DuplicateKeyException` caused by `E11000 duplicate key error collection: hr.states index: name_1`:
+
 ```json
 {
   "type": "about:blank",
-  "title": "Unauthorized",
-  "status": 401,
-  "detail": "Either Authorization header bearer token is missing or invalid",
-  "instance": "/api/employees/1",
-  "method": "GET",
-  "timestamp": "2023-10-29T16:08:40.466566+05:30",
-  "code": "insufficient-authentication-exception"
+  "status": 409,
+  "instance": "/api/states",
+  "method": "POST",
+  "code": "conflict",
+  "title": "Conflict",
+  "detail": "A state with this name already exists",
+  "timestamp": "2026-10-25T14:10:42.695805Z"
 }
 ```
 
-## Licence
-Open source [**The MIT License**](http://www.opensource.org/licenses/mit-license.php)
+### Upload too large
 
-## Authors and acknowledgment
-[**Rajveer Singh**](https://www.linkedin.com/in/rajveer-singh-589b3950/), In case you find any issues or need any support, please email me at raj14.1984@gmail.com.
-Please give me a :star: if you find it helpful.
+```json
+{
+  "type": "about:blank",
+  "status": 400,
+  "instance": "/api/documents",
+  "method": "POST",
+  "code": "max-upload-size-exceeded-exception",
+  "title": "Bad Request",
+  "detail": "Upload file size exceeded the maximum allowed limit: 10 MB",
+  "timestamp": "2026-10-25T14:10:42.700716Z"
+}
+```
 
-## Credits and references
-Inspired by [**Zalando Problem libraries**](https://github.com/zalando/problem-spring-web).
+### Unhandled exception
 
-## Known issues
-* Constraint names are resolved for PostgreSQL (JDBC driver) and MongoDB only. Errors from other sources fall back to the exception simple name as error key.
+`IllegalStateException("Connection to report-db.internal:5432 refused")`. The message is logged, not
+returned:
+
+```json
+{
+  "type": "about:blank",
+  "status": 500,
+  "instance": "/api/reports",
+  "method": "GET",
+  "code": "illegal-state-exception",
+  "title": "Internal Server Error",
+  "detail": "An unexpected error occurred",
+  "timestamp": "2026-10-25T14:10:42.705216Z"
+}
+```
+
+### Unknown path
+
+```json
+{
+  "type": "about:blank",
+  "status": 404,
+  "instance": "/api/unknown",
+  "method": "GET",
+  "code": "no-resource-found-exception",
+  "title": "Not Found",
+  "detail": "No resource found for GET /api/unknown",
+  "timestamp": "2026-10-25T14:10:42.732491Z"
+}
+```
+
+### Method not allowed
+
+`DELETE /api/employees`; the response has `Allow: GET,POST`:
+
+```json
+{
+  "type": "about:blank",
+  "status": 405,
+  "instance": "/api/employees",
+  "method": "DELETE",
+  "code": "http-request-method-not-supported-exception",
+  "title": "Method Not Allowed",
+  "detail": "Requested Method: DELETE not allowed, allowed methods are: GET,POST",
+  "timestamp": "2026-10-25T14:10:42.724262Z"
+}
+```
+
+### Unsupported content type
+
+`POST /api/employees` with `Content-Type: application/xml`; the response has `Accept: application/json`:
+
+```json
+{
+  "type": "about:blank",
+  "status": 415,
+  "instance": "/api/employees",
+  "method": "POST",
+  "code": "http-media-type-not-supported-exception",
+  "title": "Unsupported Media Type",
+  "detail": "Media Type: application/xml Not Supported, Supported Media Types are: application/json",
+  "timestamp": "2026-10-25T14:10:42.720736Z"
+}
+```
+
+### Not acceptable
+
+`GET /api/employees?page=0` with `Accept: application/xml`; the response has `Accept: application/json`:
+
+```json
+{
+  "type": "about:blank",
+  "status": 406,
+  "instance": "/api/employees",
+  "method": "GET",
+  "code": "http-media-type-not-acceptable-exception",
+  "title": "Not Acceptable",
+  "detail": "Media Type Not Acceptable, except: application/json",
+  "timestamp": "2026-10-25T14:10:42.727071Z"
+}
+```
+
+### Missing credentials
+
+`GET /api/secure/profile` without credentials, through the security filter chain:
+
+```json
+{
+  "type": "about:blank",
+  "status": 401,
+  "instance": "/api/secure/profile",
+  "method": "GET",
+  "code": "insufficient-authentication-exception",
+  "title": "Unauthorized",
+  "detail": "Full authentication is required to access this resource",
+  "timestamp": "2026-10-25T14:10:42.7363Z"
+}
+```
+
+## Limitations
+
+* **Servlet applications only.** In reactive and non-web applications the library registers nothing.
+* **Databases:** constraint names are read for PostgreSQL through its JDBC driver and for MongoDB.
+  Other databases, and PostgreSQL through R2DBC, get the plain exception-name key.
+* **Errors outside Spring MVC**, such as a request the servlet container rejects before it reaches
+  your application, are not turned into problems.
+* **One message source per JVM:** lookups use the message source of the last Spring context that
+  started. A test suite that keeps several contexts with different bundles in one JVM should run them
+  in separate forks.
+
+## License
+
+[MIT License](https://opensource.org/licenses/MIT)
+
+## Author
+
+[**Rajveer Singh**](https://www.linkedin.com/in/rajveer-singh-589b3950/). For issues or support,
+email raj14.1984@gmail.com. Please give the project a :star: if you find it helpful.
+
+## Credits
+
+Inspired by the [Zalando Problem libraries](https://github.com/zalando/problem-spring-web).

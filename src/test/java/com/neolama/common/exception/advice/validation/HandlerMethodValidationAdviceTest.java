@@ -14,7 +14,7 @@ class HandlerMethodValidationAdviceTest {
   @Autowired private MockMvcTester mvc;
 
   @Test
-  void eachFailedParameterIsAViolation() {
+  void eachFailedParameterIsAViolationWithConstraintAttributesAsPlaceholders() {
     final var body =
         assertProblem(
             this.mvc
@@ -31,6 +31,6 @@ class HandlerMethodValidationAdviceTest {
     body.extractingPath("$.violations[0].message").isEqualTo("Page must not be negative");
     body.extractingPath("$.violations[0].details").isEqualTo("Invalid value for parameter page");
     body.extractingPath("$.violations[1].message").isEqualTo("must be greater than or equal to 1");
-    body.extractingPath("$.violations[1].details").isEqualTo("Invalid value for parameter size");
+    body.extractingPath("$.violations[1].details").isEqualTo("Size must be at least 1, got 0");
   }
 }
