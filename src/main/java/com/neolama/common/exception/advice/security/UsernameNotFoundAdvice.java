@@ -26,7 +26,6 @@ public interface UsernameNotFoundAdvice extends Exceptional {
   @ExceptionHandler
   default ProblemDetails handleUsernameNotFoundException(
       final UsernameNotFoundException exception, final NativeWebRequest request) {
-    //    final HttpStatus status = resolveStatus(exception, HttpStatus.NOT_FOUND);
     final HttpStatus status = resolveStatus(exception, HttpStatus.UNAUTHORIZED);
     final ProblemDetails problemDetails =
         toProblemDetails(exception, status, BAD_CREDENTIALS_DETAIL);

@@ -17,6 +17,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.SecurityFilterChain;
@@ -145,6 +146,11 @@ public class TestApplication {
     @GetMapping("/username-not-found")
     String usernameNotFound() {
       throw new UsernameNotFoundException("User alice not found");
+    }
+
+    @GetMapping(value = "/json-only", produces = MediaType.APPLICATION_JSON_VALUE)
+    String jsonOnly() {
+      return "{}";
     }
 
     @PostMapping("/formats")

@@ -7,6 +7,7 @@ import com.neolama.common.exception.core.ProblemConstant;
 import com.neolama.common.exception.core.ProblemDetails;
 import com.neolama.common.exception.core.ProblemUtils;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Optional;
@@ -218,6 +219,24 @@ public interface Exceptional {
     problemDetails.setMethod(requestMethod(request));
     log(throwable, problemDetails);
     return problemDetails;
+  }
+
+  /**
+   * Sets the given headers on the servlet response, replacing any existing values.
+   *
+   * @param request the current web request
+   * @param headers the headers to set
+   */
+  default void setResponseHeaders(final NativeWebRequest request, final HttpHeaders headers) {
+    final HttpServletResponse response = request.getNativeResponse(HttpServletResponse.class);
+    if (response == null) {
+      return;
+    }
+    headers.forEach(
+        (name, values) -> {
+          response.setHeader(name, null);
+          values.forEach(value -> response.addHeader(name, value));
+        });
   }
 
   /**

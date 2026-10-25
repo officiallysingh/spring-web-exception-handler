@@ -40,7 +40,6 @@
         <central-publishing-maven-plugin.version>0.11.0</central-publishing-maven-plugin.version>
 
         <maven-compiler-plugin.version>3.16.0</maven-compiler-plugin.version>
-        <maven-jar-plugin.version>3.5.1</maven-jar-plugin.version>
         <maven-surefire-plugin.version>3.6.0</maven-surefire-plugin.version>
         <maven-source-plugin.version>3.4.0</maven-source-plugin.version>
         <maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
@@ -179,18 +178,6 @@
                     <reuseForks>false</reuseForks>
                 </configuration>
             </plugin>
-<!--            <plugin>-->
-<!--                <groupId>org.apache.maven.plugins</groupId>-->
-<!--                <artifactId>maven-jar-plugin</artifactId>-->
-<!--                <version>${maven-jar-plugin.version}</version>-->
-<!--                <configuration>-->
-<!--                    <archive>-->
-<!--                        <manifestEntries>-->
-<!--                            <Automatic-Module-Name>org.quartz</Automatic-Module-Name>-->
-<!--                        </manifestEntries>-->
-<!--                    </archive>-->
-<!--                </configuration>-->
-<!--            </plugin>-->
         </plugins>
     </build>
 

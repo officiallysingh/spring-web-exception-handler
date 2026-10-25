@@ -2,8 +2,13 @@ package com.neolama.common.exception.advice.http;
 
 import com.neolama.common.exception.advice.Exceptional;
 import com.neolama.common.exception.core.ProblemDetails;
+import java.util.Set;
+
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.ClassUtils;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -30,8 +35,12 @@ public interface HttpRequestMethodNotSupportedAdvice extends Exceptional {
     final String[] methods = exception.getSupportedMethods();
     final String requestedMethod = exception.getMethod();
     final String allowedMethods = ArrayUtils.isEmpty(methods) ? "None" : String.join(",", methods);
-    //    final HttpHeaders headers = new HttpHeaders();
-    //    headers.setAllow(requireNonNull(exception.getSupportedHttpMethods()));
+    final Set<HttpMethod> supportedHttpMethods = exception.getSupportedHttpMethods();
+    if (CollectionUtils.isNotEmpty(supportedHttpMethods)) {
+      final HttpHeaders headers = new HttpHeaders();
+      headers.setAllow(supportedHttpMethods);
+      setResponseHeaders(request, headers);
+    }
     final String errorKey = ClassUtils.getShortClassName(exception.getClass());
     final HttpStatus status = resolveStatus(errorKey, HttpStatus.METHOD_NOT_ALLOWED);
     final ProblemDetails problemDetails =

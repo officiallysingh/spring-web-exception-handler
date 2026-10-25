@@ -34,8 +34,11 @@ public interface MethodNotAllowedAdvice extends Exceptional {
         CollectionUtils.isEmpty(methods)
             ? "None"
             : methods.stream().map(HttpMethod::name).collect(Collectors.joining(","));
-    //    final HttpHeaders headers = new HttpHeaders();
-    //    headers.setAllow(requireNonNull(methods));
+    if (CollectionUtils.isNotEmpty(methods)) {
+      final HttpHeaders headers = new HttpHeaders();
+      headers.setAllow(methods);
+      setResponseHeaders(request, headers);
+    }
     final String errorKey = ClassUtils.getShortClassName(exception.getClass());
     final HttpStatus status = resolveStatus(errorKey, HttpStatus.METHOD_NOT_ALLOWED);
     final ProblemDetails problemDetails =

@@ -3,6 +3,8 @@ package com.neolama.common.exception.advice.http;
 import com.neolama.common.exception.advice.Exceptional;
 import com.neolama.common.exception.core.ProblemDetails;
 import java.util.List;
+
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ClassUtils;
 import org.springframework.http.*;
 import org.springframework.util.MimeTypeUtils;
@@ -29,8 +31,11 @@ public interface HttpMediaTypeNotAcceptableAdvice extends Exceptional {
   default ProblemDetails handleMediaTypeNotAcceptable(
       final HttpMediaTypeNotAcceptableException exception, final NativeWebRequest request) {
     final List<MediaType> supportedMediaTypes = exception.getSupportedMediaTypes();
-    //    final HttpHeaders headers = new HttpHeaders();
-    //    headers.setAccept(supportedMediaTypes);
+    if (CollectionUtils.isNotEmpty(supportedMediaTypes)) {
+      final HttpHeaders headers = new HttpHeaders();
+      headers.setAccept(supportedMediaTypes);
+      setResponseHeaders(request, headers);
+    }
     final String errorKey = ClassUtils.getShortClassName(exception.getClass());
     final HttpStatus status = resolveStatus(errorKey, HttpStatus.NOT_ACCEPTABLE);
     final ProblemDetails problemDetails =
