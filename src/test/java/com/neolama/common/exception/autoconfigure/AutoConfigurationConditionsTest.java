@@ -2,10 +2,15 @@ package com.neolama.common.exception.autoconfigure;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.mongodb.MongoClientSettings;
 import com.neolama.common.exception.advice.dao.constraint.ConstraintNameResolver;
+import com.neolama.common.exception.advice.dao.constraint.MongoConstraintNameResolver;
+import com.neolama.common.exception.advice.dao.constraint.PostgresConstraintNameResolver;
 import com.neolama.common.exception.jackson.ProblemModule;
 import org.junit.jupiter.api.Test;
+import org.postgresql.PGConnection;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration;
 import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.boot.test.context.runner.ReactiveWebApplicationContextRunner;
@@ -90,5 +95,64 @@ class AutoConfigurationConditionsTest {
               assertThat(context).doesNotHaveBean(ProblemMessageProvider.class);
               assertThat(context).doesNotHaveBean(ProblemModule.class);
             });
+  }
+
+  @Test
+  void daoAdviceCanBeDisabled() {
+    this.servletRunner
+        .withPropertyValues("problem.dao-advice-enabled=false")
+        .run(
+            context -> {
+              assertThat(context).hasNotFailed();
+              assertThat(context).doesNotHaveBean(WebDaoExceptionHandler.class);
+              assertThat(context).doesNotHaveBean(ConstraintNameResolver.class);
+              assertThat(context).hasSingleBean(WebExceptionHandler.class);
+            });
+  }
+
+  @Test
+  void securityAdviceCanBeDisabled() {
+    this.servletRunner
+        .withPropertyValues("problem.security-advice-enabled=false")
+        .run(
+            context -> {
+              assertThat(context).hasNotFailed();
+              assertThat(context).doesNotHaveBean(WebSecurityExceptionHandler.class);
+              assertThat(context).doesNotHaveBean(AuthenticationEntryPoint.class);
+              assertThat(context).hasSingleBean(WebExceptionHandler.class);
+            });
+  }
+
+  @Test
+  void securityAdviceNeedsSpringSecurity() {
+    this.servletRunner
+        .withClassLoader(new FilteredClassLoader(SecurityAutoConfiguration.class))
+        .run(
+            context -> {
+              assertThat(context).hasNotFailed();
+              assertThat(context).doesNotHaveBean(WebSecurityExceptionHandler.class);
+            });
+  }
+
+  @Test
+  void eachResolverNeedsItsDriver() {
+    this.servletRunner
+        .withClassLoader(new FilteredClassLoader(PGConnection.class))
+        .run(
+            context ->
+                assertThat(context)
+                    .getBeans(ConstraintNameResolver.class)
+                    .values()
+                    .singleElement()
+                    .isInstanceOf(MongoConstraintNameResolver.class));
+    this.servletRunner
+        .withClassLoader(new FilteredClassLoader(MongoClientSettings.class))
+        .run(
+            context ->
+                assertThat(context)
+                    .getBeans(ConstraintNameResolver.class)
+                    .values()
+                    .singleElement()
+                    .isInstanceOf(PostgresConstraintNameResolver.class));
   }
 }

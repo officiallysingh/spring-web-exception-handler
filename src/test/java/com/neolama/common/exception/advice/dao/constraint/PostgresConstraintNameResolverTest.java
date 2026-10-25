@@ -54,4 +54,21 @@ class PostgresConstraintNameResolverTest {
   void nullMessageReturnsNull() {
     assertThat(this.resolver.resolveConstraintName(new PSQLException(null, null))).isNull();
   }
+
+  @Test
+  void blankStructuredConstraintFallsBackToMessage() {
+    final ServerErrorMessage serverError =
+        new ServerErrorMessage(
+            "SERROR\0C23505\0Mduplicate key value violates unique constraint \"from_message\"\0");
+    assertThat(this.resolver.resolveConstraintName(new PSQLException(serverError)))
+        .isEqualTo("from_message");
+  }
+
+  @Test
+  void readsMessageOfOtherSqlExceptions() {
+    assertThat(
+            this.resolver.resolveConstraintName(
+                new java.sql.SQLException("violates unique constraint \"orders_ref_key\"")))
+        .isEqualTo("orders_ref_key");
+  }
 }

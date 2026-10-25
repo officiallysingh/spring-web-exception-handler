@@ -41,7 +41,7 @@ public interface Exceptional {
   String KEYS_LOG_END = "--------------------------------------------------------";
 
   /** Format of a logged key block: start banner, line break, keys, line break, end banner. */
-  String KEYS_LOG_FORMAT = "{}{}{}{}{}";
+  String KEYS_LOG_FORMAT = "{}{}{}{}{}{}";
 
   /** Format of a logged problem: method, path, status, code, exception name, exception message. */
   String PROBLEM_LOG_FORMAT = "{} {} — {} {}: {}: {}";
@@ -360,6 +360,7 @@ public interface Exceptional {
   default void logExceptionKey(final String exceptionKey) {
     logger.trace(
         KEYS_LOG_FORMAT,
+        System.lineSeparator(),
         EXCEPTION_KEY_LOG_START,
         System.lineSeparator(),
         exceptionKey,
@@ -375,6 +376,7 @@ public interface Exceptional {
   default void logErrorKey(final String errorKey) {
     logger.trace(
         KEYS_LOG_FORMAT,
+        System.lineSeparator(),
         ERROR_KEYS_LOG_START,
         System.lineSeparator(),
         errorKey,
@@ -391,6 +393,7 @@ public interface Exceptional {
     if (logger.isTraceEnabled()) {
       logger.trace(
           KEYS_LOG_FORMAT,
+          System.lineSeparator(),
           ERROR_KEYS_LOG_START,
           System.lineSeparator(),
           String.join(System.lineSeparator(), errorKeys),

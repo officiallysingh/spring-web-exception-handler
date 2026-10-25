@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import tools.jackson.databind.json.JsonMapper;
 
+/** {@link ProblemModule} writes status codes as numbers and methods as names, and reads them. */
 class ProblemModuleTest {
 
   private final JsonMapper mapper = JsonMapper.builder().addModule(new ProblemModule()).build();
@@ -30,5 +31,16 @@ class ProblemModuleTest {
   void methodRoundTripsAsName() {
     assertThat(this.mapper.writeValueAsString(HttpMethod.GET)).isEqualTo("\"GET\"");
     assertThat(this.mapper.readValue("\"GET\"", HttpMethod.class)).isEqualTo(HttpMethod.GET);
+  }
+
+  @Test
+  void nullValuesStayNull() {
+    assertThat(this.mapper.readValue("null", HttpMethod.class)).isNull();
+    assertThat(this.mapper.readValue("null", HttpStatusCode.class)).isNull();
+  }
+
+  @Test
+  void moduleIsNamed() {
+    assertThat(new ProblemModule().getModuleName()).isEqualTo("ProblemModule");
   }
 }
