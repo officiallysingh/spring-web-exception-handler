@@ -31,7 +31,6 @@ public interface MissingRequestHeaderAdvice extends Exceptional {
       final MissingRequestHeaderException exception, final NativeWebRequest request) {
     final String exceptionKey = ClassUtils.getShortClassName(exception.getClass());
     logExceptionKey(exceptionKey);
-    final HttpStatus status = resolveStatus(exceptionKey, HttpStatus.BAD_REQUEST);
     final String parameterKey =
         exception.getParameter().getContainingClass().getSimpleName()
             + DOT
@@ -39,6 +38,8 @@ public interface MissingRequestHeaderAdvice extends Exceptional {
             + DOT
             + exception.getHeaderName();
     final String errorKey = exceptionKey + DOT + parameterKey;
+    final HttpStatus status =
+        resolveStatus(new String[] {errorKey, exceptionKey}, HttpStatus.BAD_REQUEST);
     final ProblemDetails problemDetails =
         toProblemDetails(errorKey, status, exception.getMessage());
     return toResponse(problemDetails, request, exception);

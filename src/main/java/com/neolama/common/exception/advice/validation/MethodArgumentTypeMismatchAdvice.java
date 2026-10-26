@@ -34,7 +34,6 @@ public interface MethodArgumentTypeMismatchAdvice extends Exceptional {
     final String parameterName = exception.getName();
     final String exceptionKey = ClassUtils.getShortClassName(exception.getClass());
     logExceptionKey(exceptionKey);
-    final HttpStatus status = resolveStatus(exceptionKey, HttpStatus.BAD_REQUEST);
     final String parameterPath =
         exception.getParameter().getContainingClass().getSimpleName()
             + DOT
@@ -42,6 +41,8 @@ public interface MethodArgumentTypeMismatchAdvice extends Exceptional {
             + DOT
             + parameterName;
     final String errorKey = exceptionKey + DOT + parameterPath;
+    final HttpStatus status =
+        resolveStatus(new String[] {errorKey, exceptionKey}, HttpStatus.BAD_REQUEST);
     final ProblemDetails problemDetails =
         ProblemDetails.of(errorKey, "Invalid value for parameter " + parameterName, status);
     return toResponse(problemDetails, request, exception);

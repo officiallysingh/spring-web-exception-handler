@@ -64,11 +64,11 @@ public interface MessageNotReadableAdvice extends Exceptional {
       final InvalidFormatException invalidFormatException, final NativeWebRequest request) {
     final String exceptionKey = ClassUtils.getShortClassName(invalidFormatException.getClass());
     logExceptionKey(exceptionKey);
-    final HttpStatus status = resolveStatus(exceptionKey, HttpStatus.BAD_REQUEST);
-
     final String[] errorPropertyKeys =
         deriveInvalidFormatExceptionErrorKeys(invalidFormatException);
     logErrorKeys(errorPropertyKeys);
+    // the candidate keys end with the exception name, so its status entry applies to every property
+    final HttpStatus status = resolveStatus(errorPropertyKeys, HttpStatus.BAD_REQUEST);
 
     final String[] codeCodes =
         Arrays.stream(errorPropertyKeys)

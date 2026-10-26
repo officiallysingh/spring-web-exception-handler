@@ -2,7 +2,6 @@ package com.neolama.common.exception.advice.security;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.jspecify.annotations.NonNull;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.web.servlet.HandlerExceptionResolver;
@@ -28,9 +27,9 @@ public class ProblemAccessDeniedHandler implements AccessDeniedHandler {
   /** {@inheritDoc} */
   @Override
   public void handle(
-      final @NonNull HttpServletRequest request,
-      final @NonNull HttpServletResponse response,
-      final @NonNull AccessDeniedException exception) {
+      final HttpServletRequest request,
+      final HttpServletResponse response,
+      final AccessDeniedException exception) {
     this.resolver.resolveException(request, response, null, exception);
   }
 }

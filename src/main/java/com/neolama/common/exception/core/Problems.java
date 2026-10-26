@@ -4,7 +4,6 @@ import static com.neolama.common.exception.core.ProblemConstant.*;
 
 import java.util.*;
 import lombok.experimental.UtilityClass;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.jspecify.annotations.Nullable;
@@ -21,7 +20,6 @@ import org.springframework.util.Assert;
  * <p>Build and throw a new {@link ThrowableProblem} for every failure; do not store the result of
  * {@code throwAble()} and throw it again. See {@link ThrowableProblem} for why.
  */
-@Slf4j
 @UtilityClass
 public class Problems {
 

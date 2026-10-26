@@ -2,7 +2,6 @@ package com.neolama.common.exception.advice.security;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.jspecify.annotations.NonNull;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.web.servlet.HandlerExceptionResolver;
@@ -28,9 +27,9 @@ public class ProblemAuthenticationEntryPoint implements AuthenticationEntryPoint
   /** {@inheritDoc} */
   @Override
   public void commence(
-      final @NonNull HttpServletRequest request,
-      final @NonNull HttpServletResponse response,
-      final @NonNull AuthenticationException exception) {
+      final HttpServletRequest request,
+      final HttpServletResponse response,
+      final AuthenticationException exception) {
     this.resolver.resolveException(request, response, null, exception);
   }
 }

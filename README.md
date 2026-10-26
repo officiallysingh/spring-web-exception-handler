@@ -1,10 +1,11 @@
 # spring-web-exception-handler
 
 [![Java](https://img.shields.io/badge/java-21-blue.svg)](https://www.oracle.com/java/technologies/)
-[![Spring Boot](https://img.shields.io/badge/spring_boot-4.1.1-blue.svg)](https://spring.io/projects/spring-boot)
+[![Spring Boot](https://img.shields.io/badge/spring_boot-4.1.2-blue.svg)](https://spring.io/projects/spring-boot)
 [![Postgres](https://img.shields.io/badge/postgres-supported-blue.svg)](https://www.postgresql.org/)
 [![MongoDB](https://img.shields.io/badge/mongodb-supported-blue.svg)](https://www.mongodb.com/)
 [![Maven](https://img.shields.io/badge/maven-3.9.x-blue.svg)](https://maven.apache.org/)
+[![javadoc](https://javadoc.io/badge2/com.neolama/spring-web-exception-handler/javadoc.svg)](https://javadoc.io/doc/com.neolama/spring-web-exception-handler)
 
 **Consistent error responses for Spring Boot servlet (Spring MVC) REST APIs.** Add the dependency and
 every exception your application throws, or Spring throws for it, becomes an
@@ -66,7 +67,7 @@ your application decides which ones, and which versions, it uses.
 
 ## Installation
 
-> **Current version: 1.0.0-rc2**, available from
+> **Current version: 1.0.0-rc3**, available from
 > [Maven Central](https://central.sonatype.com/artifact/com.neolama/spring-web-exception-handler).
 
 Maven
@@ -75,14 +76,14 @@ Maven
 <dependency>
     <groupId>com.neolama</groupId>
     <artifactId>spring-web-exception-handler</artifactId>
-    <version>1.0.0-rc2</version>
+    <version>1.0.0-rc3</version>
 </dependency>
 ```
 
 Gradle
 
 ```groovy
-implementation 'com.neolama:spring-web-exception-handler:1.0.0-rc2'
+implementation 'com.neolama:spring-web-exception-handler:1.0.0-rc3'
 ```
 
 Spring Boot auto-configuration registers everything. There is no annotation to add.
@@ -171,6 +172,12 @@ Every problem has an **error key**. The library looks up these messages for it, 
 A configured message always wins over the library's and your Java defaults. A `status.` value that is
 not a known status code is ignored, with a warning in the log such as
 `Ignoring status.OrderLockedException=4O9: not an HTTP status code`.
+
+When an error key extends the exception name, such as `MissingServletRequestParameterException.page`,
+`status.` is looked up for the full key first and then for the exception name alone. So
+`status.MissingServletRequestParameterException.page=422` sets the status for one parameter, and
+`status.MissingServletRequestParameterException=422` for all of them. For an
+[invalid JSON value](#invalid-json-values), the candidate keys are tried in order.
 
 ### Which error key?
 
@@ -361,7 +368,8 @@ Spring's `ResponseStatusException` also works: its status is used, and its reaso
 ## Handled exceptions
 
 The advices live in [`advice`](src/main/java/com/neolama/common/exception/advice). Every status can
-be changed with `status.{errorKey}`. "Spring's message" means the exception's own message, which is
+be changed with `status.{errorKey}`, except for `ResponseStatusException`, which always uses its own
+status. "Spring's message" means the exception's own message, which is
 safe to show for these client errors.
 
 ### General

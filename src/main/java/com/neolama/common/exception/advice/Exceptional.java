@@ -13,7 +13,6 @@ import java.util.Objects;
 import java.util.Optional;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -101,6 +100,21 @@ public interface Exceptional {
    */
   default HttpStatus resolveStatus(final String errorKey, final HttpStatus defaultStatus) {
     return ProblemUtils.configuredStatus(errorKey).orElse(defaultStatus);
+  }
+
+  /**
+   * Resolves the HTTP status configured for the first of the given error keys that has one.
+   *
+   * <p>Advices whose error key extends the exception name, such as {@code
+   * MissingServletRequestParameterException.page}, pass that key first and the exception name after
+   * it, so that a status can be set for one parameter or for all of them.
+   *
+   * @param errorKeys the error keys, most specific first
+   * @param defaultStatus the status used when no key has a configured status
+   * @return the resolved HTTP status
+   */
+  default HttpStatus resolveStatus(final String[] errorKeys, final HttpStatus defaultStatus) {
+    return ProblemUtils.configuredStatus(errorKeys).orElse(defaultStatus);
   }
 
   /**
@@ -192,7 +206,7 @@ public interface Exceptional {
    * @param throwable the throwable being handled
    * @return the completed problem details
    */
-  default @NonNull ProblemDetails toResponse(
+  default ProblemDetails toResponse(
       final ProblemDetails problemDetails,
       final NativeWebRequest request,
       final Throwable throwable) {

@@ -32,6 +32,25 @@ public class ProblemUtils {
   private static final BigDecimal KILO = BigDecimal.valueOf(1024);
 
   /**
+   * Reads the first {@code status.{errorKey}} entry configured for the given error keys.
+   *
+   * <p>The keys are tried in order, most specific first. A value that is not a known HTTP status
+   * code is ignored, with a single warn line naming the entry, and the next key is tried.
+   *
+   * @param errorKeys the error keys, most specific first
+   * @return the configured status, or empty when no key has a known status code
+   */
+  public static Optional<HttpStatus> configuredStatus(final String... errorKeys) {
+    for (final String errorKey : errorKeys) {
+      final Optional<HttpStatus> status = configuredStatus(errorKey);
+      if (status.isPresent()) {
+        return status;
+      }
+    }
+    return Optional.empty();
+  }
+
+  /**
    * Reads the {@code status.{errorKey}} entry from the message source.
    *
    * <p>A value that is not a known HTTP status code is ignored, with a single warn line naming the

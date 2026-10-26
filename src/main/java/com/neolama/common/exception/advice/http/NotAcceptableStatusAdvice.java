@@ -33,7 +33,6 @@ public interface NotAcceptableStatusAdvice extends Exceptional {
   @ExceptionHandler
   default ProblemDetails handleMediaTypeNotAcceptable(
       final NotAcceptableStatusException exception, final NativeWebRequest request) {
-    // TODO: Can improvise
     final List<MediaType> supportedMediaTypes = exception.getSupportedMediaTypes();
     if (CollectionUtils.isNotEmpty(supportedMediaTypes)) {
       final HttpHeaders headers = new HttpHeaders();
