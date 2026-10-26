@@ -35,7 +35,7 @@ public interface MissingRequestHeaderAdvice extends Exceptional {
     final String parameterKey =
         exception.getParameter().getContainingClass().getSimpleName()
             + DOT
-            + exception.getParameter().getMethod().getName()
+            + exception.getParameter().getExecutable().getName()
             + DOT
             + exception.getHeaderName();
     final String errorKey = exceptionKey + DOT + parameterKey;

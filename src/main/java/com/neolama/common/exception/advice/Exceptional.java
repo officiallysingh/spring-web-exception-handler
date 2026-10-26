@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Objects;
 import java.util.Optional;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -144,7 +145,7 @@ public interface Exceptional {
    * @return problem details for the throwable
    */
   default ProblemDetails toProblemDetails(final Throwable throwable, final HttpStatus status) {
-    final String defaultDetail =
+    final @Nullable String defaultDetail =
         status.is5xxServerError() ? DEFAULT_DETAIL : throwable.getMessage();
     return toProblemDetails(throwable, status, defaultDetail);
   }
@@ -158,7 +159,7 @@ public interface Exceptional {
    * @return problem details for the throwable
    */
   default ProblemDetails toProblemDetails(
-      final Throwable throwable, final HttpStatus status, final String defaultDetail) {
+      final Throwable throwable, final HttpStatus status, final @Nullable String defaultDetail) {
     final String errorKey = ClassUtils.getShortClassName(throwable.getClass());
     return toProblemDetails(errorKey, status, defaultDetail);
   }
@@ -172,7 +173,7 @@ public interface Exceptional {
    * @return problem details for the error key
    */
   default ProblemDetails toProblemDetails(
-      final String errorKey, final HttpStatus status, final String defaultDetail) {
+      final String errorKey, final HttpStatus status, final @Nullable String defaultDetail) {
     return toProblemDetails(errorKey, status, defaultDetail, (Object[]) null);
   }
 
@@ -192,8 +193,8 @@ public interface Exceptional {
   default ProblemDetails toProblemDetails(
       final String errorKey,
       final HttpStatus status,
-      final String defaultDetail,
-      final @Nullable Object... detailArgs) {
+      final @Nullable String defaultDetail,
+      final Object @Nullable ... detailArgs) {
     logErrorKey(errorKey);
     return ProblemDetails.of(errorKey, defaultDetail, detailArgs, status);
   }
@@ -246,7 +247,7 @@ public interface Exceptional {
    * @return the request URI
    */
   default URI requestUri(final NativeWebRequest request) {
-    return URI.create(request.getNativeRequest(HttpServletRequest.class).getRequestURI());
+    return URI.create(servletRequest(request).getRequestURI());
   }
 
   /**
@@ -256,7 +257,19 @@ public interface Exceptional {
    * @return the HTTP method
    */
   default HttpMethod requestMethod(final NativeWebRequest request) {
-    return HttpMethod.valueOf(request.getNativeRequest(HttpServletRequest.class).getMethod());
+    return HttpMethod.valueOf(servletRequest(request).getMethod());
+  }
+
+  /**
+   * Returns the native servlet request of the current web request.
+   *
+   * @param request the current web request
+   * @return the servlet request
+   * @throws NullPointerException if the request is not a servlet request
+   */
+  private static HttpServletRequest servletRequest(final NativeWebRequest request) {
+    return Objects.requireNonNull(
+        request.getNativeRequest(HttpServletRequest.class), "Not a servlet request");
   }
 
   /**
@@ -275,9 +288,9 @@ public interface Exceptional {
    * with its code as fragment. A type set explicitly on the problem is kept.
    *
    * @param problemDetails the problem details
-   * @return the problem type
+   * @return the problem type, or {@code null} when the problem has none
    */
-  default URI typeUri(final ProblemDetails problemDetails) {
+  default @Nullable URI typeUri(final ProblemDetails problemDetails) {
     final URI baseUrl = typeUrl();
     final String code = problemDetails.getCode();
     if (baseUrl == null

@@ -36,7 +36,7 @@ public interface MethodArgumentTypeMismatchAdvice extends Exceptional {
     final String parameterPath =
         exception.getParameter().getContainingClass().getSimpleName()
             + DOT
-            + exception.getParameter().getMethod().getName()
+            + exception.getParameter().getExecutable().getName()
             + DOT
             + parameterName;
     final String errorKey = exceptionKey + DOT + parameterPath;

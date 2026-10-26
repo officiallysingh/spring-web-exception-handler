@@ -43,19 +43,29 @@ import org.springframework.http.ProblemDetail;
 public class ProblemDetails extends ProblemDetail {
 
   /** Stable code that identifies this problem. */
-  private String code;
+  private final String code;
 
   /** HTTP method of the request that produced this problem. */
-  @Setter private HttpMethod method;
+  @Setter @Nullable private HttpMethod method;
 
   /** UTC time at which this problem was created. */
-  private OffsetDateTime timestamp;
+  private final OffsetDateTime timestamp;
 
   /** Field and property violations associated with this problem. */
-  private List<Problem> violations;
+  @Nullable private List<Problem> violations;
 
   /** Nested problems associated with this problem. */
-  private List<Problem> errors;
+  @Nullable private List<Problem> errors;
+
+  /**
+   * Creates problem details with the given code, stamped with the current UTC time.
+   *
+   * @param code the problem code
+   */
+  private ProblemDetails(final String code) {
+    this.code = code;
+    this.timestamp = OffsetDateTime.now(ZoneId.of("UTC"));
+  }
 
   /**
    * Creates problem details for an error key and status.
@@ -85,7 +95,7 @@ public class ProblemDetails extends ProblemDetail {
   public static ProblemDetails of(
       final String errorKey,
       @Nullable final String defaultDetail,
-      @Nullable Object[] detailArgs,
+      final Object @Nullable [] detailArgs,
       final HttpStatus status) {
     final String defaultCode =
         errorKey.contains(".")
@@ -126,13 +136,11 @@ public class ProblemDetails extends ProblemDetail {
    */
   public static ProblemDetails of(
       final HttpStatus status, final String code, final String title, final String detail) {
-    ProblemDetails problemDetails = new ProblemDetails();
+    ProblemDetails problemDetails = new ProblemDetails(code);
     problemDetails.setType(DEFAULT_TYPE_URL);
     problemDetails.setStatus(status);
     problemDetails.setTitle(title);
     problemDetails.setDetail(detail);
-    problemDetails.code = code;
-    problemDetails.timestamp = OffsetDateTime.now(ZoneId.of("UTC"));
     return problemDetails;
   }
 

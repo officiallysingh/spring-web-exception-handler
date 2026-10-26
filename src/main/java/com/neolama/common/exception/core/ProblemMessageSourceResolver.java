@@ -37,7 +37,7 @@ public class ProblemMessageSourceResolver implements MessageSourceResolvable, Se
   @Nullable private final String defaultMessage;
 
   /** Arguments substituted into the resolved message. */
-  @Nullable private final Object[] arguments;
+  private final Object @Nullable [] arguments;
 
   /**
    * Creates a resolver for the given codes, default message, and arguments.
@@ -49,7 +49,9 @@ public class ProblemMessageSourceResolver implements MessageSourceResolvable, Se
    *     none
    */
   private ProblemMessageSourceResolver(
-      final String[] codes, final @Nullable String defaultMessage, Object[] arguments) {
+      final String[] codes,
+      final @Nullable String defaultMessage,
+      final Object @Nullable [] arguments) {
     this.codes = codes;
     this.defaultMessage = defaultMessage;
     this.arguments = arguments;
@@ -379,7 +381,7 @@ public class ProblemMessageSourceResolver implements MessageSourceResolvable, Se
 
   /** {@inheritDoc} */
   @Override
-  public Object[] getArguments() {
+  public Object @Nullable [] getArguments() {
     return this.arguments;
   }
 }

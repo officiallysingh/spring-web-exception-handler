@@ -3,8 +3,10 @@ package com.neolama.common.exception.advice.http;
 import com.neolama.common.exception.advice.Exceptional;
 import com.neolama.common.exception.core.ProblemDetails;
 import java.util.List;
+import java.util.Objects;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ClassUtils;
+import org.jspecify.annotations.Nullable;
 import org.springframework.http.*;
 import org.springframework.util.MimeTypeUtils;
 import org.springframework.web.context.request.NativeWebRequest;
@@ -21,14 +23,15 @@ public interface BaseNotAcceptableAdvice extends Exceptional {
    * supported.
    *
    * @param supportedMediaTypes the media types the endpoint accepts
-   * @param causeMediaType the media type that was rejected
+   * @param causeMediaType the media type that was rejected, or {@code null} when the request had
+   *     none
    * @param exception the exception being handled
    * @param request the current web request
    * @return problem details for the unsupported media type
    */
   default ProblemDetails processMediaTypeNotSupportedException(
       final List<MediaType> supportedMediaTypes,
-      final MediaType causeMediaType,
+      final @Nullable MediaType causeMediaType,
       final Exception exception,
       final NativeWebRequest request) {
     if (CollectionUtils.isNotEmpty(supportedMediaTypes)) {
@@ -43,7 +46,7 @@ public interface BaseNotAcceptableAdvice extends Exceptional {
             errorKey,
             status,
             "Media Type: {0} Not Supported, Supported Media Types are: {1}",
-            causeMediaType,
+            Objects.toString(causeMediaType),
             MimeTypeUtils.toString(supportedMediaTypes));
     return toResponse(problemDetails, request, exception);
   }

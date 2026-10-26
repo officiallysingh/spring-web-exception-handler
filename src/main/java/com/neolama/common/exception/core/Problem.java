@@ -19,7 +19,6 @@ import org.springframework.util.Assert;
  */
 @Getter
 @Setter
-@NoArgsConstructor
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @EqualsAndHashCode
 @ToString

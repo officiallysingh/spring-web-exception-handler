@@ -178,13 +178,12 @@ public class Problems {
                 VIOLATIONS_KEY,
                 ERRORS_KEY));
 
-    private ErrorType errorType;
-    private String errorKey;
-    private String defaultDetail;
-    private Collection<Problem> problems;
-    private Object[] detailsArgs;
-    private Throwable cause;
-    private HttpStatus status;
+    private @Nullable ErrorType errorType;
+    private @Nullable String errorKey;
+    private @Nullable String defaultDetail;
+    private Collection<Problem> problems = List.of();
+    private Object @Nullable [] detailsArgs;
+    private @Nullable Throwable cause;
 
     private final Map<String, Object> parameters = new LinkedHashMap<>();
 
@@ -251,25 +250,21 @@ public class Problems {
     /** {@inheritDoc} */
     @Override
     public ProblemBuildable parameters(final @Nullable Map<String, Object> parameters) {
-      if (MapUtils.isNotEmpty(parameters)) {
-        parameters.forEach(this::parameter);
-      }
+      MapUtils.emptyIfNull(parameters).forEach(this::parameter);
       return this;
     }
 
     /** {@inheritDoc} */
     @Override
     public ThrowableProblem throwAble() {
-      this.status = this.resolveStatus();
-      return this.build();
+      return this.build(this.resolveStatus());
     }
 
     /** {@inheritDoc} */
     @Override
     public ThrowableProblem throwAble(final HttpStatus status) {
       Assert.notNull(status, "'status' must not be null");
-      this.status = status;
-      return this.build();
+      return this.build(status);
     }
 
     /**
@@ -304,7 +299,7 @@ public class Problems {
      */
     private static Optional<HttpStatus> configuredStatus(final String errorKey) {
       final String value =
-          ProblemMessageProvider.getMessage(STATUS_CODE_PREFIX + errorKey, (String) null);
+          ProblemMessageProvider.getMessage(STATUS_CODE_PREFIX + errorKey, StringUtils.EMPTY);
       if (!StringUtils.isNumeric(StringUtils.trimToEmpty(value))) {
         return Optional.empty();
       }
@@ -314,9 +309,10 @@ public class Problems {
     /**
      * Builds the exception from the values collected by this builder.
      *
+     * @param status the HTTP status of the problem
      * @return the assembled exception
      */
-    private ThrowableProblem build() {
+    private ThrowableProblem build(final HttpStatus status) {
       ProblemDetails problemDetail;
       if (Objects.nonNull(this.errorType)) {
         problemDetail =
@@ -324,13 +320,13 @@ public class Problems {
                 this.errorType.getErrorKey(),
                 this.errorType.getDefaultDetail(),
                 this.detailsArgs,
-                this.status);
+                status);
       } else if (Objects.nonNull(this.errorKey)) {
         problemDetail =
-            ProblemDetails.of(this.errorKey, this.defaultDetail, this.detailsArgs, this.status);
+            ProblemDetails.of(this.errorKey, this.defaultDetail, this.detailsArgs, status);
       } else {
         // Initialized with problems.
-        problemDetail = ProblemDetails.of(this.status);
+        problemDetail = ProblemDetails.of(status);
         problemDetail.setErrors(this.problems);
       }
       if (MapUtils.isNotEmpty(this.parameters)) {

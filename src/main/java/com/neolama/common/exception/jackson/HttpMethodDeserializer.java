@@ -1,5 +1,6 @@
 package com.neolama.common.exception.jackson;
 
+import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpMethod;
 import tools.jackson.core.JsonParser;
 import tools.jackson.databind.DeserializationContext;
@@ -15,7 +16,8 @@ final class HttpMethodDeserializer extends StdDeserializer<HttpMethod> {
 
   /** {@inheritDoc} */
   @Override
-  public HttpMethod deserialize(final JsonParser json, final DeserializationContext context) {
+  public @Nullable HttpMethod deserialize(
+      final JsonParser json, final DeserializationContext context) {
     final String method = json.getValueAsString();
     if (method == null) {
       return null;

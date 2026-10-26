@@ -1,5 +1,7 @@
 package com.neolama.common.exception.autoconfigure;
 
+import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 import org.springframework.context.MessageSource;
 import org.springframework.context.MessageSourceResolvable;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -40,8 +42,10 @@ public class ProblemMessageProvider {
    * @return the resolved message
    */
   public static String getMessage(final String messageCode, final String defaultMessage) {
-    return messageSource.getMessage(
-        messageCode, null, defaultMessage, LocaleContextHolder.getLocale());
+    return Objects.requireNonNullElse(
+        messageSource.getMessage(
+            messageCode, null, defaultMessage, LocaleContextHolder.getLocale()),
+        defaultMessage);
   }
 
   /**
@@ -53,9 +57,11 @@ public class ProblemMessageProvider {
    * @return the resolved message
    */
   public static String getMessage(
-      final String messageCode, final String defaultMessage, final Object... params) {
-    return messageSource.getMessage(
-        messageCode, params, defaultMessage, LocaleContextHolder.getLocale());
+      final String messageCode, final String defaultMessage, final Object @Nullable ... params) {
+    return Objects.requireNonNullElse(
+        messageSource.getMessage(
+            messageCode, params, defaultMessage, LocaleContextHolder.getLocale()),
+        defaultMessage);
   }
 
   /**

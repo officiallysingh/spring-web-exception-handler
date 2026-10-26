@@ -30,7 +30,7 @@ public class ThrowableProblem extends RuntimeException {
    * @param cause the cause of this exception
    * @param problemDetails the problem details to carry
    */
-  private ThrowableProblem(final Throwable cause, final ProblemDetails problemDetails) {
+  private ThrowableProblem(final @Nullable Throwable cause, final ProblemDetails problemDetails) {
     super(problemDetails.getDetail(), cause);
     this.problemDetails = problemDetails;
   }
