@@ -2,7 +2,6 @@ package com.neolama.common.exception.advice;
 
 import static com.neolama.common.exception.core.ProblemConstant.*;
 
-import com.neolama.common.exception.autoconfigure.ProblemMessageProvider;
 import com.neolama.common.exception.core.ProblemConstant;
 import com.neolama.common.exception.core.ProblemDetails;
 import com.neolama.common.exception.core.ProblemUtils;
@@ -76,16 +75,7 @@ public interface Exceptional {
             .or(() -> errorResponseStatus(throwable))
             .orElse(defaultStatus);
     final String errorKey = ClassUtils.getShortClassName(throwable.getClass());
-    try {
-      final String statusCode =
-          ProblemMessageProvider.getMessage(
-              STATUS_CODE_PREFIX + errorKey, String.valueOf(defStatus.value()));
-      return HttpStatus.valueOf(Integer.parseInt(statusCode));
-    } catch (final Exception e) {
-      logger.warn("Failed to resolve status code for error key: {}", errorKey, e);
-      // Ignore on purpose
-      return defStatus;
-    }
+    return ProblemUtils.configuredStatus(errorKey).orElse(defStatus);
   }
 
   /**
@@ -110,16 +100,7 @@ public interface Exceptional {
    * @return the resolved HTTP status
    */
   default HttpStatus resolveStatus(final String errorKey, final HttpStatus defaultStatus) {
-    try {
-      final String statusCode =
-          ProblemMessageProvider.getMessage(
-              STATUS_CODE_PREFIX + errorKey, String.valueOf(defaultStatus.value()));
-      return HttpStatus.valueOf(Integer.parseInt(statusCode));
-    } catch (final Exception e) {
-      logger.warn("Failed to resolve status code for error key: {}", errorKey, e);
-      // Ignore on purpose
-      return defaultStatus;
-    }
+    return ProblemUtils.configuredStatus(errorKey).orElse(defaultStatus);
   }
 
   /**

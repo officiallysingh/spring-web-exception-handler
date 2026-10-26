@@ -15,7 +15,9 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
  * ProblemDetails}.
  *
  * <p>The status defaults to {@link HttpStatus#BAD_REQUEST}. The error key includes the controller,
- * handler method, and parameter name.
+ * handler method, and request parameter name. The request name, as in
+ * {@code @RequestParam("joined_after")}, is used rather than the Java parameter name, both in the
+ * key and in the default detail, so that both name what the client sent.
  */
 public interface MethodArgumentTypeMismatchAdvice extends Exceptional {
 
@@ -29,7 +31,7 @@ public interface MethodArgumentTypeMismatchAdvice extends Exceptional {
   @ExceptionHandler
   default ProblemDetails handleMethodArgumentTypeMismatch(
       final MethodArgumentTypeMismatchException exception, final NativeWebRequest request) {
-    final String parameterName = exception.getParameter().getParameterName();
+    final String parameterName = exception.getName();
     final String exceptionKey = ClassUtils.getShortClassName(exception.getClass());
     logExceptionKey(exceptionKey);
     final HttpStatus status = resolveStatus(exceptionKey, HttpStatus.BAD_REQUEST);

@@ -3,6 +3,7 @@ package com.neolama.common.exception.support;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import java.beans.PropertyChangeEvent;
+import java.time.LocalDate;
 import org.springframework.beans.TypeMismatchException;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.BindException;
@@ -31,6 +32,16 @@ class ValidationTestController {
   @GetMapping("/number")
   String number(@RequestParam final int count) {
     return "count " + count;
+  }
+
+  @GetMapping("/renamed")
+  String renamed(@RequestParam("joined_after") final LocalDate joinedAfter) {
+    return "joined after " + joinedAfter;
+  }
+
+  @GetMapping("/renamed-configured")
+  String renamedConfigured(@RequestParam("joined_before") final LocalDate joinedBefore) {
+    return "joined before " + joinedBefore;
   }
 
   @GetMapping("/bind")

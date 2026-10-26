@@ -4,7 +4,9 @@ import static com.neolama.common.exception.core.ProblemConstant.BAD_CREDENTIALS_
 
 import com.neolama.common.exception.advice.Exceptional;
 import com.neolama.common.exception.core.ProblemDetails;
+import org.apache.commons.lang3.ClassUtils;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.NativeWebRequest;
@@ -12,7 +14,10 @@ import org.springframework.web.context.request.NativeWebRequest;
 /**
  * Advice trait that handles {@link UsernameNotFoundException} and returns {@link ProblemDetails}.
  *
- * <p>The status defaults to {@link HttpStatus#UNAUTHORIZED}.
+ * <p>The response is the one for a {@link BadCredentialsException}: its error key, and so its code,
+ * title, detail, and status, including any {@code *.BadCredentialsException} messages. A client
+ * therefore cannot tell an unknown user from a wrong password. The log still names the {@link
+ * UsernameNotFoundException}. The status defaults to {@link HttpStatus#UNAUTHORIZED}.
  */
 public interface UsernameNotFoundAdvice extends Exceptional {
 
@@ -26,9 +31,10 @@ public interface UsernameNotFoundAdvice extends Exceptional {
   @ExceptionHandler
   default ProblemDetails handleUsernameNotFoundException(
       final UsernameNotFoundException exception, final NativeWebRequest request) {
-    final HttpStatus status = resolveStatus(exception, HttpStatus.UNAUTHORIZED);
+    final String errorKey = ClassUtils.getShortClassName(BadCredentialsException.class);
+    final HttpStatus status = resolveStatus(errorKey, HttpStatus.UNAUTHORIZED);
     final ProblemDetails problemDetails =
-        toProblemDetails(exception, status, BAD_CREDENTIALS_DETAIL);
+        toProblemDetails(errorKey, status, BAD_CREDENTIALS_DETAIL);
     return toResponse(problemDetails, request, exception);
   }
 }

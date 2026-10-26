@@ -1,18 +1,24 @@
 package com.neolama.common.exception.core;
 
+import static com.neolama.common.exception.core.ProblemConstant.STATUS_CODE_PREFIX;
 import static org.springframework.core.annotation.AnnotatedElementUtils.findMergedAnnotation;
 
+import com.neolama.common.exception.autoconfigure.ProblemMessageProvider;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 /** Helpers for HTTP status lookup, number parsing, size formatting, and problem codes. */
+@Slf4j
 @UtilityClass
 public class ProblemUtils {
 
@@ -24,6 +30,29 @@ public class ProblemUtils {
 
   /** Bytes in a kilobyte, as used by {@link #formatSize(long)}. */
   private static final BigDecimal KILO = BigDecimal.valueOf(1024);
+
+  /**
+   * Reads the {@code status.{errorKey}} entry from the message source.
+   *
+   * <p>A value that is not a known HTTP status code is ignored, with a single warn line naming the
+   * entry.
+   *
+   * @param errorKey the error key
+   * @return the configured status, or empty when the entry is missing or not a known status code
+   */
+  public static Optional<HttpStatus> configuredStatus(final String errorKey) {
+    final String value =
+        ProblemMessageProvider.getMessage(STATUS_CODE_PREFIX + errorKey, StringUtils.EMPTY).trim();
+    if (value.isEmpty()) {
+      return Optional.empty();
+    }
+    final HttpStatus status =
+        StringUtils.isNumeric(value) ? HttpStatus.resolve(NumberUtils.toInt(value, -1)) : null;
+    if (status == null) {
+      log.warn("Ignoring {}{}={}: not an HTTP status code", STATUS_CODE_PREFIX, errorKey, value);
+    }
+    return Optional.ofNullable(status);
+  }
 
   /**
    * Resolves the {@link HttpStatus} for the given {@link Throwable}.

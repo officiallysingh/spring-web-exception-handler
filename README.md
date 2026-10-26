@@ -169,7 +169,8 @@ Every problem has an **error key**. The library looks up these messages for it, 
 | `status.{errorKey}` | HTTP status | `status.DuplicateKeyException.employees_name_key=409` |
 
 A configured message always wins over the library's and your Java defaults. A `status.` value that is
-not a known status code is ignored.
+not a known status code is ignored, with a warning in the log such as
+`Ignoring status.OrderLockedException=4O9: not an HTTP status code`.
 
 ### Which error key?
 
@@ -181,6 +182,7 @@ not a known status code is ignored.
 | Missing header `X-Tenant` on `OrderController.create` | `MissingRequestHeaderException.OrderController.create.X-Tenant` |
 | Missing multipart part `file` | `MissingServletRequestPartException.file` |
 | Wrong type for parameter `joinedAfter` on `EmployeeController.search` | `MethodArgumentTypeMismatchException.EmployeeController.search.joinedAfter` |
+| Same, bound with `@RequestParam("joined_after")` | `MethodArgumentTypeMismatchException.EmployeeController.search.joined_after`: the request name, not the Java name |
 | Database constraint `employees_name_key` | `DuplicateKeyException.employees_name_key` ([Database errors](#database-errors)) |
 | Field and parameter validation | Several candidate keys, most specific first ([Validation errors](#validation-errors)) |
 | Invalid value in a JSON body | Several candidate keys, most specific first ([Handled exceptions](#invalid-json-values)) |
@@ -483,7 +485,7 @@ With `spring-boot-starter-security` on the classpath:
 | Exception | Status | Default detail |
 | --- | --- | --- |
 | `AuthenticationException` and its subclasses, such as `BadCredentialsException` and `InsufficientAuthenticationException` | `401` | Spring's message |
-| `UsernameNotFoundException` | `401` | `Bad credentials`, so the response does not reveal whether the user exists |
+| `UsernameNotFoundException` | `401` | Answered as `BadCredentialsException`, with the same code, title, detail, and status, so the response does not reveal whether the user exists. The log names the real exception |
 | `AccessDeniedException` and its subclasses, such as `AuthorizationDeniedException` and CSRF failures | `403` | Spring's message |
 
 The advices handle these exceptions when they are thrown inside a controller. **Failures in the
@@ -606,7 +608,7 @@ they should.
 
 ## Logging
 
-Everything is logged by `com.neolama.common.exception.advice.Exceptional`:
+Handled exceptions are logged by `com.neolama.common.exception.advice.Exceptional`:
 
 | Status | Level | What |
 | --- | --- | --- |
@@ -623,6 +625,9 @@ WARN  ... : GET /api/unknown — 404 no-resource-found-exception: NoResourceFoun
 ```
 
 The log line keeps the exception message that the 5xx response hides.
+
+A `status.` message that is not a known status code is reported as a WARN by
+`com.neolama.common.exception.core.ProblemUtils`, each time it is looked up.
 
 ## Testing your application
 

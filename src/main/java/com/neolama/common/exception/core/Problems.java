@@ -2,13 +2,11 @@ package com.neolama.common.exception.core;
 
 import static com.neolama.common.exception.core.ProblemConstant.*;
 
-import com.neolama.common.exception.autoconfigure.ProblemMessageProvider;
 import java.util.*;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpStatus;
 import org.springframework.util.Assert;
@@ -282,28 +280,14 @@ public class Problems {
         final HttpStatus javaDefault =
             Objects.requireNonNullElse(
                 this.errorType.getStatus(), HttpStatus.INTERNAL_SERVER_ERROR);
-        return configuredStatus(this.errorType.getErrorKey()).orElse(javaDefault);
+        return ProblemUtils.configuredStatus(this.errorType.getErrorKey()).orElse(javaDefault);
       } else if (Objects.nonNull(this.errorKey)) {
-        return configuredStatus(this.errorKey).orElse(HttpStatus.INTERNAL_SERVER_ERROR);
+        return ProblemUtils.configuredStatus(this.errorKey)
+            .orElse(HttpStatus.INTERNAL_SERVER_ERROR);
       } else {
         // Initialized with problems: no single error key to look up.
         return HttpStatus.INTERNAL_SERVER_ERROR;
       }
-    }
-
-    /**
-     * Reads the {@code status.{errorKey}} entry from the message source.
-     *
-     * @param errorKey the error key
-     * @return the configured status, or empty when the entry is missing or not a known status code
-     */
-    private static Optional<HttpStatus> configuredStatus(final String errorKey) {
-      final String value =
-          ProblemMessageProvider.getMessage(STATUS_CODE_PREFIX + errorKey, StringUtils.EMPTY);
-      if (!StringUtils.isNumeric(StringUtils.trimToEmpty(value))) {
-        return Optional.empty();
-      }
-      return Optional.ofNullable(HttpStatus.resolve(Integer.parseInt(value.trim())));
     }
 
     /**

@@ -54,7 +54,7 @@ class SecurityAdviceTest {
     assertProblem(
         this.mvc.get().uri("/security/username-not-found").exchange(),
         401,
-        "username-not-found-exception",
+        "bad-credentials-exception",
         "Bad credentials");
   }
 }

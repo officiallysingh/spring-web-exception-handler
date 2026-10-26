@@ -6,7 +6,7 @@
 
     <groupId>com.neolama</groupId>
     <artifactId>spring-web-exception-handler</artifactId>
-    <version>1.0.0-rc2</version>
+    <version>1.0.0-rc3</version>
     <name>spring-web-exception-handler</name>
     <description>Commons exception handler library for Spring Boot applications</description>
     <url>https://github.com/officiallysingh/spring-web-exception-handler</url>

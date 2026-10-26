@@ -42,7 +42,7 @@ class TypeUrlTest {
 
   @Test
   void securityHandlerSetsType() {
-    assertType("/security/username-not-found", BASE + "#username-not-found-exception");
+    assertType("/security/username-not-found", BASE + "#bad-credentials-exception");
   }
 
   @Test

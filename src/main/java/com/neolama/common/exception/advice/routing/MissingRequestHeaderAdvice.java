@@ -27,7 +27,7 @@ public interface MissingRequestHeaderAdvice extends Exceptional {
    * @return problem details for the missing header
    */
   @ExceptionHandler
-  default ProblemDetails handleMissingServletRequestParameter(
+  default ProblemDetails handleMissingRequestHeader(
       final MissingRequestHeaderException exception, final NativeWebRequest request) {
     final String exceptionKey = ClassUtils.getShortClassName(exception.getClass());
     logExceptionKey(exceptionKey);
