@@ -6,7 +6,11 @@ import tools.jackson.core.JsonGenerator;
 import tools.jackson.databind.SerializationContext;
 import tools.jackson.databind.ser.std.StdSerializer;
 
-/** Jackson serializer for {@link HttpMethod}. */
+/**
+ * Jackson serializer for {@link HttpMethod}, written as its name.
+ *
+ * <p>Jackson writes a {@code null} value itself and never passes one to this serializer.
+ */
 final class HttpMethodSerializer extends StdSerializer<HttpMethod> {
 
   /** Constructs a new {@link HttpMethod} serializer. */
@@ -18,10 +22,6 @@ final class HttpMethodSerializer extends StdSerializer<HttpMethod> {
   @Override
   public void serialize(HttpMethod method, JsonGenerator json, SerializationContext provider)
       throws JacksonException {
-    if (method == null) {
-      json.writeNull();
-    } else {
-      json.writeString(method.name());
-    }
+    json.writeString(method.name());
   }
 }

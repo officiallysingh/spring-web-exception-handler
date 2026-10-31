@@ -158,7 +158,7 @@ public class Problems {
    * Assembles a {@link ThrowableProblem} from an error key, {@link ErrorType}, or collection of
    * {@link Problem}s.
    */
-  public static class Builder implements DefaultDetailBuilder {
+  private static final class Builder implements DefaultDetailBuilder {
 
     private static final Set<String> RESERVED_PROPERTIES =
         new HashSet<>(

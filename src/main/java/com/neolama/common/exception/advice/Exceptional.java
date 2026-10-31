@@ -14,8 +14,6 @@ import java.util.Objects;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.context.request.NativeWebRequest;
@@ -26,24 +24,6 @@ import org.springframework.web.util.UriComponentsBuilder;
  * throwables to problems, and building responses.
  */
 public interface Exceptional {
-
-  /** Shared logger for advice traits. */
-  Logger logger = LoggerFactory.getLogger(Exceptional.class);
-
-  /** Banner written before a logged exception key. */
-  String EXCEPTION_KEY_LOG_START = "---------------------- Exception Key ----------------------";
-
-  /** Banner written before logged error keys. */
-  String ERROR_KEYS_LOG_START = "---------------------- Error Keys ----------------------";
-
-  /** Banner written after logged exception or error keys. */
-  String KEYS_LOG_END = "--------------------------------------------------------";
-
-  /** Format of a logged key block: start banner, line break, keys, line break, end banner. */
-  String KEYS_LOG_FORMAT = "{}{}{}{}{}{}";
-
-  /** Format of a logged problem: method, path, status, code, exception name, exception message. */
-  String PROBLEM_LOG_FORMAT = "{} {} — {} {}: {}: {}";
 
   /**
    * Resolves the HTTP status for the given throwable.
@@ -324,8 +304,8 @@ public interface Exceptional {
     final int status = problemDetails.getStatus();
     final String exceptionName = ProblemUtils.errorKey(throwable.getClass());
     if (HttpStatusCode.valueOf(status).is5xxServerError()) {
-      logger.error(
-          PROBLEM_LOG_FORMAT,
+      ExceptionalLog.LOGGER.error(
+          ExceptionalLog.PROBLEM_LOG_FORMAT,
           problemDetails.getMethod(),
           problemDetails.getInstance(),
           status,
@@ -334,15 +314,15 @@ public interface Exceptional {
           throwable.getMessage(),
           throwable);
     } else {
-      logger.warn(
-          PROBLEM_LOG_FORMAT,
+      ExceptionalLog.LOGGER.warn(
+          ExceptionalLog.PROBLEM_LOG_FORMAT,
           problemDetails.getMethod(),
           problemDetails.getInstance(),
           status,
           problemDetails.getCode(),
           exceptionName,
           throwable.getMessage());
-      logger.debug(
+      ExceptionalLog.LOGGER.debug(
           "Stack trace for {} {}",
           problemDetails.getMethod(),
           problemDetails.getInstance(),
@@ -356,14 +336,14 @@ public interface Exceptional {
    * @param exceptionKey the exception key to log
    */
   default void logExceptionKey(final String exceptionKey) {
-    logger.trace(
-        KEYS_LOG_FORMAT,
+    ExceptionalLog.LOGGER.trace(
+        ExceptionalLog.KEYS_LOG_FORMAT,
         System.lineSeparator(),
-        EXCEPTION_KEY_LOG_START,
+        ExceptionalLog.EXCEPTION_KEY_LOG_START,
         System.lineSeparator(),
         exceptionKey,
         System.lineSeparator(),
-        KEYS_LOG_END);
+        ExceptionalLog.KEYS_LOG_END);
   }
 
   /**
@@ -372,14 +352,14 @@ public interface Exceptional {
    * @param errorKey the error key to log
    */
   default void logErrorKey(final String errorKey) {
-    logger.trace(
-        KEYS_LOG_FORMAT,
+    ExceptionalLog.LOGGER.trace(
+        ExceptionalLog.KEYS_LOG_FORMAT,
         System.lineSeparator(),
-        ERROR_KEYS_LOG_START,
+        ExceptionalLog.ERROR_KEYS_LOG_START,
         System.lineSeparator(),
         errorKey,
         System.lineSeparator(),
-        KEYS_LOG_END);
+        ExceptionalLog.KEYS_LOG_END);
   }
 
   /**
@@ -388,15 +368,15 @@ public interface Exceptional {
    * @param errorKeys the error keys to log
    */
   default void logErrorKeys(final String[] errorKeys) {
-    if (logger.isTraceEnabled()) {
-      logger.trace(
-          KEYS_LOG_FORMAT,
+    if (ExceptionalLog.LOGGER.isTraceEnabled()) {
+      ExceptionalLog.LOGGER.trace(
+          ExceptionalLog.KEYS_LOG_FORMAT,
           System.lineSeparator(),
-          ERROR_KEYS_LOG_START,
+          ExceptionalLog.ERROR_KEYS_LOG_START,
           System.lineSeparator(),
           String.join(System.lineSeparator(), errorKeys),
           System.lineSeparator(),
-          KEYS_LOG_END);
+          ExceptionalLog.KEYS_LOG_END);
     }
   }
 }
