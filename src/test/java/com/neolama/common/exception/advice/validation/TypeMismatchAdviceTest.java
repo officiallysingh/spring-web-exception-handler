@@ -61,6 +61,16 @@ class TypeMismatchAdviceTest {
         "Invalid value for property count");
   }
 
+  /** A missing converter is a server configuration error, not a bad value from the client. */
+  @Test
+  void conversionNotSupportedIsServerError() {
+    assertProblem(
+        this.mvc.get().uri("/validation/no-converter").param("value", "abc").exchange(),
+        500,
+        "method-argument-conversion-not-supported-exception",
+        "An unexpected error occurred");
+  }
+
   /** The ignored status entry is reported once, as a single line without a stack trace. */
   @Test
   void invalidConfiguredStatusLogsOneWarnLine(final CapturedOutput output) {

@@ -5,6 +5,7 @@ import static com.neolama.common.exception.core.ProblemConstant.DOT;
 import com.neolama.common.exception.advice.Exceptional;
 import com.neolama.common.exception.core.ProblemDetails;
 import org.apache.commons.lang3.ClassUtils;
+import org.springframework.beans.ConversionNotSupportedException;
 import org.springframework.beans.TypeMismatchException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -15,6 +16,10 @@ import org.springframework.web.context.request.NativeWebRequest;
  *
  * <p>The status defaults to {@link HttpStatus#BAD_REQUEST}. The error key includes the error code
  * and property name.
+ *
+ * <p>A {@link ConversionNotSupportedException} means no converter exists for the target type, a
+ * server configuration error rather than a bad value from the client. It is answered like any other
+ * unhandled exception: status {@code 500} by default and its simple name as error key.
  */
 public interface TypeMismatchAdvice extends Exceptional {
 
@@ -28,6 +33,9 @@ public interface TypeMismatchAdvice extends Exceptional {
   @ExceptionHandler
   default ProblemDetails handleTypeMismatch(
       final TypeMismatchException exception, final NativeWebRequest request) {
+    if (exception instanceof ConversionNotSupportedException) {
+      return toResponse(toProblemDetails(exception), request, exception);
+    }
     final String exceptionKey = ClassUtils.getShortClassName(exception.getClass());
     logExceptionKey(exceptionKey);
     final String propertyName = exception.getPropertyName();

@@ -1,14 +1,16 @@
 package com.neolama.common.exception.autoconfigure;
 
+import com.neolama.common.exception.advice.Exceptional;
 import com.neolama.common.exception.jackson.ProblemModule;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
 
 /**
- * Registers the problem message source and the Jackson module used to read and write problem
- * details.
+ * Registers the problem message source, the {@code problem.*} configuration holder, and the Jackson
+ * module used to read and write problem details.
  *
  * <p>Enabled in servlet web applications.
  */
@@ -25,6 +27,18 @@ public class ProblemConfiguration {
   @Bean
   ProblemMessageProvider problemMessageProvider(final MessageSource messageSource) {
     return new ProblemMessageProvider(messageSource);
+  }
+
+  /**
+   * Creates the holder of the {@code problem.*} configuration values used by every advice.
+   *
+   * @param typeUrl the {@code problem.type-url} property, may be blank
+   * @return the configuration provider
+   * @throws IllegalArgumentException if the property is set but not an absolute URI
+   */
+  @Bean
+  ProblemConfigProvider problemConfigProvider(@Value("${problem.type-url:}") final String typeUrl) {
+    return new ProblemConfigProvider(Exceptional.parseTypeUrl(typeUrl));
   }
 
   /**

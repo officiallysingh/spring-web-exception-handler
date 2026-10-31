@@ -34,6 +34,11 @@ class ValidationTestController {
     return "count " + count;
   }
 
+  @GetMapping("/no-converter")
+  String noConverter(@RequestParam final NoConverter value) {
+    return "value " + value;
+  }
+
   @GetMapping("/renamed")
   String renamed(@RequestParam("joined_after") final LocalDate joinedAfter) {
     return "joined after " + joinedAfter;
@@ -58,4 +63,7 @@ class ValidationTestController {
     throw new TypeMismatchException(
         new PropertyChangeEvent(this, "count", null, "abc"), Integer.class);
   }
+
+  /** A parameter type that no converter can create from a request value. */
+  static final class NoConverter {}
 }

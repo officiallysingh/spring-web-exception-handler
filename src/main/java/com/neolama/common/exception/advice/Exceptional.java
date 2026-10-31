@@ -2,6 +2,7 @@ package com.neolama.common.exception.advice;
 
 import static com.neolama.common.exception.core.ProblemConstant.*;
 
+import com.neolama.common.exception.autoconfigure.ProblemConfigProvider;
 import com.neolama.common.exception.core.ProblemConstant;
 import com.neolama.common.exception.core.ProblemDetails;
 import com.neolama.common.exception.core.ProblemUtils;
@@ -270,10 +271,13 @@ public interface Exceptional {
   /**
    * Returns the base URL of the page that documents problem codes, from {@code problem.type-url}.
    *
+   * <p>Every advice reads the same value, held by {@link ProblemConfigProvider}. Override this
+   * method for an advice that should use another URL, or none.
+   *
    * @return the base URL, or {@code null} when problem types stay {@code about:blank}
    */
   default @Nullable URI typeUrl() {
-    return null;
+    return ProblemConfigProvider.getTypeUrl();
   }
 
   /**

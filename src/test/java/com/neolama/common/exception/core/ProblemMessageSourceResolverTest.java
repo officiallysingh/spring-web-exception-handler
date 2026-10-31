@@ -27,31 +27,18 @@ class ProblemMessageSourceResolverTest {
   class CodeFactories {
 
     @Test
-    void singleAndMultipleCodes() {
-      assertThat(ProblemMessageSourceResolver.of("a").getCodes()).containsExactly("a");
-      assertThat(ProblemMessageSourceResolver.of(new String[] {"a", "b"}).getCodes())
-          .containsExactly("a", "b");
-      assertThat(ProblemMessageSourceResolver.of("a").getDefaultMessage()).isNull();
-      assertThat(ProblemMessageSourceResolver.of("a").getArguments()).isNull();
-    }
-
-    @Test
-    void defaultMessageOrStatus() {
-      assertThat(ProblemMessageSourceResolver.of("a", "default").getDefaultMessage())
-          .isEqualTo("default");
-      assertThat(ProblemMessageSourceResolver.of("a", 404).getDefaultMessage()).isEqualTo("404");
-      assertThat(ProblemMessageSourceResolver.of(CODES, "default").getDefaultMessage())
-          .isEqualTo("default");
-      assertThat(ProblemMessageSourceResolver.of(CODES, 404).getDefaultMessage()).isEqualTo("404");
+    void codesAndDefaultMessage() {
+      final ProblemMessageSourceResolver resolver = ProblemMessageSourceResolver.of(CODES, "d");
+      assertThat(resolver.getCodes()).containsExactly(CODES);
+      assertThat(resolver.getDefaultMessage()).isEqualTo("d");
+      assertThat(resolver.getArguments()).isNull();
     }
 
     @Test
     void arguments() {
       final Object[] arguments = {1, 2};
-      assertThat(ProblemMessageSourceResolver.of("a", arguments).getArguments())
-          .containsExactly(1, 2);
-      assertThat(ProblemMessageSourceResolver.of(CODES, arguments).getArguments())
-          .containsExactly(1, 2);
+      assertThat(ProblemMessageSourceResolver.of("a", "d", arguments).getCodes())
+          .containsExactly("a");
       assertThat(ProblemMessageSourceResolver.of("a", "d", arguments).getArguments())
           .containsExactly(1, 2);
       assertThat(ProblemMessageSourceResolver.of(CODES, "d", arguments).getArguments())

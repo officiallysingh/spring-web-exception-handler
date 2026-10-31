@@ -65,6 +65,19 @@ class PostgresConstraintNameResolverTest {
   }
 
   @Test
+  void uniqueViolationIsRecognisedBySqlState() {
+    assertThat(
+            this.resolver.isUniqueViolation(
+                new PSQLException("duplicate key", PSQLState.UNIQUE_VIOLATION)))
+        .isTrue();
+    assertThat(
+            this.resolver.isUniqueViolation(
+                new PSQLException("violates foreign key", PSQLState.FOREIGN_KEY_VIOLATION)))
+        .isFalse();
+    assertThat(this.resolver.isUniqueViolation(new PSQLException(null, null))).isFalse();
+  }
+
+  @Test
   void readsMessageOfOtherSqlExceptions() {
     assertThat(
             this.resolver.resolveConstraintName(

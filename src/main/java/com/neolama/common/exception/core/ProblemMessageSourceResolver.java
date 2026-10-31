@@ -58,48 +58,6 @@ public class ProblemMessageSourceResolver implements MessageSourceResolvable, Se
   }
 
   /**
-   * Creates a resolver for a single error code.
-   *
-   * @param code the error code
-   * @return a new {@code ProblemMessageSourceResolver}
-   */
-  public static ProblemMessageSourceResolver of(final String code) {
-    return new ProblemMessageSourceResolver(new String[] {code}, null, null);
-  }
-
-  /**
-   * Creates a resolver for multiple error codes.
-   *
-   * @param codes the error codes
-   * @return a new {@code ProblemMessageSourceResolver}
-   */
-  public static ProblemMessageSourceResolver of(final String[] codes) {
-    return new ProblemMessageSourceResolver(codes, null, null);
-  }
-
-  /**
-   * Creates a resolver for a single error code and arguments.
-   *
-   * @param code the error code
-   * @param arguments the message arguments
-   * @return a new {@code ProblemMessageSourceResolver}
-   */
-  public static ProblemMessageSourceResolver of(final String code, final Object[] arguments) {
-    return new ProblemMessageSourceResolver(new String[] {code}, null, arguments);
-  }
-
-  /**
-   * Creates a resolver for multiple error codes and arguments.
-   *
-   * @param codes the error codes
-   * @param arguments the message arguments
-   * @return a new {@code ProblemMessageSourceResolver}
-   */
-  public static ProblemMessageSourceResolver of(final String[] codes, final Object[] arguments) {
-    return new ProblemMessageSourceResolver(codes, null, arguments);
-  }
-
-  /**
    * Creates a resolver for multiple error codes and a default message.
    *
    * @param codes the error codes
@@ -108,39 +66,6 @@ public class ProblemMessageSourceResolver implements MessageSourceResolvable, Se
    */
   public static ProblemMessageSourceResolver of(final String[] codes, final String defaultMessage) {
     return new ProblemMessageSourceResolver(codes, defaultMessage, null);
-  }
-
-  /**
-   * Creates a resolver for multiple error codes and an HTTP status as default message.
-   *
-   * @param codes the error codes
-   * @param status the HTTP status
-   * @return a new {@code ProblemMessageSourceResolver}
-   */
-  public static ProblemMessageSourceResolver of(final String[] codes, final int status) {
-    return new ProblemMessageSourceResolver(codes, String.valueOf(status), null);
-  }
-
-  /**
-   * Creates a resolver for a single error code and a default message.
-   *
-   * @param code the error code
-   * @param defaultMessage the default message
-   * @return a new {@code ProblemMessageSourceResolver}
-   */
-  public static ProblemMessageSourceResolver of(final String code, final String defaultMessage) {
-    return new ProblemMessageSourceResolver(new String[] {code}, defaultMessage, null);
-  }
-
-  /**
-   * Creates a resolver for a single error code and an HTTP status code as default message.
-   *
-   * @param code the error code
-   * @param statusCode the HTTP status code
-   * @return a new {@code ProblemMessageSourceResolver}
-   */
-  public static ProblemMessageSourceResolver of(final String code, final int statusCode) {
-    return new ProblemMessageSourceResolver(new String[] {code}, String.valueOf(statusCode), null);
   }
 
   /**
@@ -201,7 +126,7 @@ public class ProblemMessageSourceResolver implements MessageSourceResolvable, Se
         Arrays.stream(objectError.getCodes())
             .map(code -> prefix + DOT + code)
             .toArray(String[]::new),
-        "" + status,
+        String.valueOf(status),
         objectErrorArguments(objectError));
   }
 
@@ -272,7 +197,7 @@ public class ProblemMessageSourceResolver implements MessageSourceResolvable, Se
         Arrays.stream(fieldError.getCodes())
             .map(code -> prefix + DOT + code)
             .toArray(String[]::new),
-        "" + status,
+        String.valueOf(status),
         fieldErrorArguments(fieldError));
   }
 
@@ -320,7 +245,7 @@ public class ProblemMessageSourceResolver implements MessageSourceResolvable, Se
       final String prefix, final ConstraintViolation<?> violation, final int status) {
     return of(
         prefix + DOT + violation.getPropertyPath().toString(),
-        "" + status,
+        String.valueOf(status),
         new Object[] {violation.getPropertyPath().toString(), violation.getInvalidValue()});
   }
 

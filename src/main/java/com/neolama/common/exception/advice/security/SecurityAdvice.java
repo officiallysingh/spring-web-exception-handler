@@ -5,8 +5,4 @@ package com.neolama.common.exception.advice.security;
  * com.neolama.common.exception.autoconfigure.WebSecurityExceptionHandler}.
  */
 public interface SecurityAdvice
-    extends UsernameNotFoundAdvice,
-        BadCredentialsExceptionAdvice,
-        AuthenticationExceptionAdvice,
-        InsufficientAuthenticationAdvice,
-        AccessDeniedExceptionAdvice {}
+    extends UsernameNotFoundAdvice, AuthenticationExceptionAdvice, AccessDeniedExceptionAdvice {}

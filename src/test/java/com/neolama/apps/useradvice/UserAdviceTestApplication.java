@@ -1,5 +1,7 @@
 package com.neolama.apps.useradvice;
 
+import com.neolama.common.exception.advice.Exceptional;
+import com.neolama.common.exception.core.ProblemDetails;
 import java.sql.SQLException;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.NativeWebRequest;
 
 /**
  * Application with its own {@code @RestControllerAdvice}, in a package outside the library so the
@@ -46,6 +49,28 @@ public class UserAdviceTestApplication {
     @GetMapping("/user/illegal-state")
     String illegalState() {
       throw new IllegalStateException("boom");
+    }
+
+    @GetMapping("/user/payment-declined")
+    String paymentDeclined() {
+      throw new PaymentDeclinedException();
+    }
+  }
+
+  /** An application exception handled by an application advice built on {@link Exceptional}. */
+  static class PaymentDeclinedException extends RuntimeException {}
+
+  /** Application advice that uses the library's helpers, as the README shows. */
+  @RestControllerAdvice
+  static class PaymentAdvice implements Exceptional {
+
+    @ExceptionHandler
+    ProblemDetails handlePaymentDeclined(
+        final PaymentDeclinedException exception, final NativeWebRequest request) {
+      final ProblemDetails problemDetails =
+          toProblemDetails(
+              "PaymentDeclinedException", HttpStatus.PAYMENT_REQUIRED, "Payment was declined");
+      return toResponse(problemDetails, request, exception);
     }
   }
 

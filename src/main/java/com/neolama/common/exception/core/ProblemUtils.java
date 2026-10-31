@@ -6,6 +6,7 @@ import static org.springframework.core.annotation.AnnotatedElementUtils.findMerg
 import com.neolama.common.exception.autoconfigure.ProblemMessageProvider;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -21,6 +22,15 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @Slf4j
 @UtilityClass
 public class ProblemUtils {
+
+  /** A valid error key: a letter, then letters, digits, dots, hyphens, or underscores. */
+  private static final Pattern ERROR_KEY = Pattern.compile("\\p{Alpha}[\\p{Alnum}._-]*");
+
+  /** Splits camel case: the position before an upper-case letter that follows any character. */
+  private static final Pattern CAMEL_CASE_BOUNDARY = Pattern.compile("(?<=.)(?=\\p{Upper})");
+
+  /** A run of characters that are neither letters nor digits. */
+  private static final Pattern SEPARATORS = Pattern.compile("[^\\p{L}\\p{N}]+");
 
   /** Matches a run of decimal digits. */
   private static final Pattern NUMBER = Pattern.compile("\\d+");
@@ -170,16 +180,48 @@ public class ProblemUtils {
   }
 
   /**
-   * Converts a camel-case errorKey into a lower-case, hyphen-separated problem code.
+   * Converts an error key into a lower-case, hyphen-separated problem code.
    *
-   * <p>Every upper-case letter starts a new segment, e.g. {@code NullPointerException} becomes
-   * {@code null-pointer-exception} and {@code IOException} becomes {@code i-o-exception}.
+   * <p>Every upper-case letter starts a new segment, and every run of other characters than letters
+   * and digits, such as dots, underscores, or spaces, becomes one hyphen: {@code
+   * NullPointerException} becomes {@code null-pointer-exception}, {@code IOException} becomes
+   * {@code i-o-exception}, and {@code row.invalid} becomes {@code row-invalid}.
    *
-   * @param errorKey the errorKey to convert, typically an exception simple class name
+   * <p>Never fails, because it also converts keys the library builds from class, constraint, and
+   * parameter names. A key with no letter or digit, such as {@code !!!}, is returned trimmed.
+   *
+   * @param errorKey the error key to convert, typically an exception simple class name
    * @return the problem code
    */
   public static String getProblemCode(final String errorKey) {
-    return errorKey.replaceAll("(?<=.)(?=\\p{Upper})", "-").toLowerCase();
+    final String split = CAMEL_CASE_BOUNDARY.matcher(errorKey).replaceAll("-");
+    final String hyphenated = SEPARATORS.matcher(split.toLowerCase(Locale.ROOT)).replaceAll("-");
+    final String code = StringUtils.strip(hyphenated, "-");
+    return code.isEmpty() ? errorKey.trim() : code;
+  }
+
+  /**
+   * Checks the format of an error key supplied by application code.
+   *
+   * <p>A valid key starts with a letter and contains only letters, digits, dots, hyphens, and
+   * underscores, such as {@code order.not.found}, {@code order-not-found}, or {@code
+   * OrderNotFound}. Checking when the problem is built reports a wrong key while the code is
+   * written, rather than turning it into a confusing response.
+   *
+   * @param errorKey the error key to check, may be {@code null}
+   * @return the error key
+   * @throws IllegalArgumentException if the key is {@code null} or not in the expected format
+   */
+  public static String requireValidErrorKey(final @Nullable String errorKey) {
+    if (errorKey == null || !ERROR_KEY.matcher(errorKey).matches()) {
+      throw new IllegalArgumentException(
+          "Invalid error key '"
+              + errorKey
+              + "': an error key must start with a letter and contain only letters, digits,"
+              + " dots, hyphens, or underscores, such as 'order.not.found', 'order-not-found', or"
+              + " 'OrderNotFound'");
+    }
+    return errorKey;
   }
 
   /**

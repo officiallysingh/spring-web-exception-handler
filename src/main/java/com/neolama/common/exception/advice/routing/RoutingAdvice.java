@@ -8,6 +8,4 @@ public interface RoutingAdvice
     extends MissingServletRequestParameterAdvice,
         MissingServletRequestPartAdvice,
         MissingRequestHeaderAdvice,
-        NoHandlerFoundAdvice,
-        NoResourceFoundAdvice,
-        ServletRequestBindingAdvice {}
+        NoResourceFoundAdvice {}

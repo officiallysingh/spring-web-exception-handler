@@ -58,7 +58,7 @@ Optional integrations switch on when the matching library is on your classpath:
 | Your application has | You get |
 | --- | --- |
 | `spring-boot-starter-validation` | Validation errors with one entry per failed field or parameter ([Validation errors](#validation-errors)) |
-| `spring-tx` (comes with Spring Data JPA, JDBC, or MongoDB) | Data-integrity and duplicate-key handling ([Database errors](#database-errors)) |
+| `spring-tx` (comes with Spring Data JPA, JDBC, or MongoDB) | Data-integrity, duplicate-key, and concurrent-update handling ([Database errors](#database-errors)) |
 | PostgreSQL JDBC driver or MongoDB driver | Constraint and index names in error keys |
 | `spring-boot-starter-security` | Authentication and authorization errors ([Spring Security](#spring-security)) |
 
@@ -108,7 +108,6 @@ Spring Boot auto-configuration registers everything. There is no annotation to a
 
    ```properties
    detail.DuplicateKeyException.employees_name_key=An employee with this name already exists
-   status.DuplicateKeyException.employees_name_key=409
    ```
 
    [Messages and error keys](#messages-and-error-keys) explains the keys.
@@ -145,9 +144,13 @@ Entries in `violations` and `errors` have `code`, `message`, and `details`. Extr
 
 * an error key **without** a dot becomes kebab-case, one segment per capital letter, keeping the
   `Exception` suffix: `NoResourceFoundException` → `no-resource-found-exception`, `IOException` →
-  `i-o-exception`, `OrderNotFound` → `order-not-found`;
+  `i-o-exception`, `OrderNotFound` → `order-not-found`. Underscores and other separators become one
+  hyphen: `order_not_found` → `order-not-found`;
 * an error key **with** a dot becomes the status name: `MissingServletRequestParameterException.page`
   with status 400 → `bad-request`.
+
+An entry in `errors` built with `Problem.of("error.key")` has no status, so its default `code` is the
+key in kebab-case with the dots too: `row.invalid` → `row-invalid`.
 
 **Default `detail`.** Server errors (5xx) never show the exception message to clients; it stays in
 the server log. The default is `An unexpected error occurred` unless a `detail.{errorKey}` message is
@@ -167,7 +170,7 @@ Every problem has an **error key**. The library looks up these messages for it, 
 | `code.{errorKey}` | `code` | `code.DuplicateKeyException.employees_name_key=employee-name-taken` |
 | `title.{errorKey}` | `title` | `title.DuplicateKeyException.employees_name_key=Duplicate employee` |
 | `detail.{errorKey}` | `detail` | `detail.DuplicateKeyException.employees_name_key=An employee with this name already exists` |
-| `status.{errorKey}` | HTTP status | `status.DuplicateKeyException.employees_name_key=409` |
+| `status.{errorKey}` | HTTP status | `status.DuplicateKeyException.employees_name_key=422` |
 
 A configured message always wins over the library's and your Java defaults. A `status.` value that is
 not a known status code is ignored, with a warning in the log such as
@@ -224,7 +227,7 @@ depend on the error:
 | `405` method not allowed | `{0}` requested method, `{1}` allowed methods |
 | `415` media type not supported | `{0}` request content type, `{1}` supported media types |
 | `406` not acceptable | `{0}` media types that can be produced |
-| Upload or request size limit | `{0}` the limit, readable: `512 B`, `1.5 KB`, `10 MB` |
+| Upload size limit, or downstream response buffer limit | `{0}` the limit, readable: `512 B`, `1.5 KB`, `10 MB` |
 | `@Valid` body field, or controller method parameter | `{0}` field or parameter, `{1}` rejected value, `{2}` field or parameter name, `{3}` onwards the constraint attributes in alphabetical order. For `@Size(min = 3, max = 10)`: `{3}` is `10`, `{4}` is `3` |
 | `@Valid` body object (class-level constraint) | `{0}` object name, `{1}` object name, `{2}` onwards the constraint attributes |
 | `ConstraintViolationException` | `{0}` property path, `{1}` invalid value |
@@ -240,9 +243,7 @@ request with `Accept-Language: fr` reads `i18n/errors_fr.properties` first and f
 [`i18n/problems.properties`](src/main/resources/i18n/problems.properties) contains:
 
 ```properties
-detail.ConcurrencyFailureException=Conflicted with another concurrent update, please retry
 detail.UnsupportedOperationException=The requested operation is not supported yet
-detail.MaxUploadSizeExceededException=Upload file size exceeded the maximum allowed limit: {0}
 ```
 
 ## Throwing problems from your code
@@ -257,6 +258,12 @@ starting points:
 | `Problems.of(ErrorType)` | The error is one of your application's known errors (recommended) |
 | `Problems.of("error.key")` | A one-off error |
 | `Problems.of(problem, others...)` or `Problems.of(collection)` | Several errors in one response |
+
+**Error keys you supply** to `Problems.of(...)`, an `ErrorType`, or `Problem.of(...)` must start with
+a letter and contain only letters, digits, dots, hyphens, and underscores, such as
+`order.not.found`, `order-not-found`, or `OrderNotFound`. Any other key, such as `12345` or
+`order not found`, throws an `IllegalArgumentException` when the problem is built, so a typo shows
+up while you write the code.
 
 ### Error types
 
@@ -340,7 +347,10 @@ throw Problems.of(
 ```
 
 The problems are listed under `errors`. `Problem.of("error.key")` resolves its `code`, `message`, and
-`details` from `code.`, `title.`, and `detail.` messages for that key.
+`details` from `code.`, `title.`, and `detail.` messages for that key. Without them, the defaults are
+the key in kebab-case (`error-key`), `Internal Server Error`, and
+`Something went wrong while processing the request`. `Problem.of(errorKey, code, message, details)`
+sets your own defaults; pass `null` for any you leave to the library.
 
 ### Do not reuse a thrown problem
 
@@ -385,9 +395,9 @@ safe to show for these client errors.
 
 | Exception | Status | Error key | Default detail |
 | --- | --- | --- | --- |
-| `HttpRequestMethodNotSupportedException`, `MethodNotAllowedException` | `405` + `Allow` | Simple class name | `Requested Method: {0} not allowed, allowed methods are: {1}` |
-| `HttpMediaTypeNotSupportedException`, `UnsupportedMediaTypeStatusException` | `415` + `Accept` | Simple class name | `Media Type: {0} Not Supported, Supported Media Types are: {1}` |
-| `HttpMediaTypeNotAcceptableException`, `NotAcceptableStatusException` | `406` + `Accept` | Simple class name | `Media Type Not Acceptable, except: {0}` |
+| `HttpRequestMethodNotSupportedException` | `405` + `Allow` | Simple class name | `Requested Method: {0} not allowed, allowed methods are: {1}` |
+| `HttpMediaTypeNotSupportedException` | `415` + `Accept` | Simple class name | `Media Type: {0} Not Supported, Supported Media Types are: {1}` |
+| `HttpMediaTypeNotAcceptableException` | `406` + `Accept` | Simple class name | `Media Type Not Acceptable, except: {0}` |
 
 ### Request routing
 
@@ -406,8 +416,8 @@ safe to show for these client errors.
 | --- | --- | --- | --- |
 | `HttpMessageNotReadableException` (malformed JSON) | `400` | `HttpMessageNotReadableException` | `Malformed request body` |
 | Invalid value in a JSON body (Jackson `InvalidFormatException`) | `400` | [Candidate keys](#invalid-json-values) | `Malformed request body` |
-| `MaxUploadSizeExceededException` | `400` | `MaxUploadSizeExceededException` | `Upload file size exceeded the maximum allowed limit: {0}` |
-| `DataBufferLimitException` | `400` | `DataBufferLimitException` | `Request data exceeded the allowed limit: {0}` |
+| `MaxUploadSizeExceededException` | `413` | `MaxUploadSizeExceededException` | `Upload file size exceeded the maximum allowed limit: {0}` |
+| `DataBufferLimitException` | `500` | `DataBufferLimitException` | `Response data from a downstream service exceeded the allowed limit: {0}` |
 | Other `MultipartException` | `400` | `MultipartException` | Spring's message |
 
 #### Invalid JSON values
@@ -459,17 +469,27 @@ The [TRACE log](#which-error-key) lists the exact keys of every violation.
 Values that cannot be converted to the parameter's type, such as `?joinedAfter=yesterday` for a
 `LocalDate`, return `400` with `Invalid value for parameter joinedAfter`
 (`MethodArgumentTypeMismatchException`) or `Invalid value for property ...` (`TypeMismatchException`).
+A parameter type with no converter at all is a server configuration error and returns `500` with
+the error key `MethodArgumentConversionNotSupportedException`.
 
 ## Database errors
 
 Needs `spring-tx` on the classpath. Spring translates driver errors into
-`DataIntegrityViolationException` or its subclass `DuplicateKeyException`; both return:
+`DataIntegrityViolationException` or its subclass `DuplicateKeyException`. The library tells a
+**duplicate** (a unique constraint or unique index violation) from any other violation by the
+driver error, not by the exception class: under JPA, Hibernate reports a unique violation as a plain
+`DataIntegrityViolationException`.
 
-* status `500`, unless you configure one;
-* error key `{Exception}.{constraint}` when the constraint is known, otherwise the exception name
-  alone;
-* detail `The request conflicts with existing data`. The database's own message, which can contain
-  data values, is never sent to clients.
+| | Duplicate | Any other violation, such as NOT NULL or a foreign key |
+| --- | --- | --- |
+| Recognised by | `DuplicateKeyException`, PostgreSQL SQLState `23505`, or a MongoDB duplicate-key error code such as `11000` | Everything else |
+| Status | `409` | `500`: usually the application let invalid data through |
+| Error key | `DuplicateKeyException.{constraint}`, for JDBC, JPA, and MongoDB alike | `{Exception}.{constraint}` |
+| Detail | `The request conflicts with existing data` | `An unexpected error occurred` |
+
+Without a known constraint name the error key is the exception name alone, such as
+`DuplicateKeyException`. Configured messages win in every case. The database's own message, which
+can contain data values, is never sent to clients.
 
 | Database | Constraint name | Example error key |
 | --- | --- | --- |
@@ -478,13 +498,27 @@ Needs `spring-tx` on the classpath. Spring translates driver errors into
 | Anything else, or no constraint (such as a NOT NULL violation) | None | `DataIntegrityViolationException` |
 
 ```properties
-status.DuplicateKeyException.employees_name_key=409
 code.DuplicateKeyException.employees_name_key=employee-name-taken
 detail.DuplicateKeyException.employees_name_key=An employee with this name already exists
 
 # Covers every other data-integrity failure
 detail.DataIntegrityViolationException=The data violates a database rule
 ```
+
+### Concurrent updates
+
+Spring reports locking failures as a `ConcurrencyFailureException` subclass:
+
+| | Optimistic lock: `OptimisticLockingFailureException` and its subclasses | Any other `ConcurrencyFailureException`: lock timeout, deadlock, serialization failure |
+| --- | --- | --- |
+| Example | An `@Version` mismatch in `MongoTemplate`, a repository `save`, or JPA | `CannotAcquireLockException` from a PostgreSQL lock timeout |
+| Status | `409`: the record changed since it was read | `503`: temporary contention, retrying should work |
+| Error key | `OptimisticLockingFailureException`, also for JPA's subclasses | `PessimisticLockingFailureException`, or `ConcurrencyFailureException` for a plain one |
+| Detail | `The resource was changed by another request; reload it and try again` | `The request could not be completed because of concurrent activity; please retry` |
+
+The error key is the Spring base class, not the class thrown, so one bundle fits JPA and MongoDB. The
+log names the class thrown. A `503` is logged at ERROR with its stack trace, so deadlocks and lock
+timeouts stay visible.
 
 ## Spring Security
 
@@ -532,8 +566,8 @@ library does not create its own of that type.
 
 | Property | Default | Meaning |
 | --- | --- | --- |
-| `problem.type-url` | not set | Base URL of a page that documents your error codes. When set, `type` becomes `{type-url}#{code}`, such as `https://example.com/problems#employee-not-found`. Must be an absolute URI; the application fails to start otherwise. |
-| `problem.dao-advice-enabled` | `true` | Set to `false` to turn off [database error](#database-errors) handling. The fallback then handles those exceptions. |
+| `problem.type-url` | not set | Base URL of a page that documents your error codes. When set, `type` becomes `{type-url}#{code}`, such as `https://example.com/problems#employee-not-found`. Applies to every advice, including your own advices built on `Exceptional`. Must be an absolute URI; the application fails to start otherwise. |
+| `problem.dao-advice-enabled` | `true` | Set to `false` to turn off [database error](#database-errors) handling, including [concurrent updates](#concurrent-updates). The fallback then handles those exceptions. |
 | `problem.security-advice-enabled` | `true` | Set to `false` to turn off [Spring Security](#spring-security) handling and the entry point and access-denied handler beans. |
 
 ### Spring properties that matter
@@ -554,9 +588,9 @@ All of them load only in servlet web applications.
 
 | Auto-configuration | Provides | Extra condition |
 | --- | --- | --- |
-| [`ProblemConfiguration`](src/main/java/com/neolama/common/exception/autoconfigure/ProblemConfiguration.java) | Message lookups and the Jackson module for status and method values | |
+| [`ProblemConfiguration`](src/main/java/com/neolama/common/exception/autoconfigure/ProblemConfiguration.java) | Message lookups, the `problem.type-url` value for all advices, and the Jackson module for status and method values | |
 | [`WebExceptionHandler`](src/main/java/com/neolama/common/exception/autoconfigure/WebExceptionHandler.java) | General, HTTP, routing, body, and validation handling | |
-| [`WebDaoExceptionHandler`](src/main/java/com/neolama/common/exception/autoconfigure/WebDaoExceptionHandler.java) | Database error handling | `spring-tx` present, `problem.dao-advice-enabled` not `false` |
+| [`WebDaoExceptionHandler`](src/main/java/com/neolama/common/exception/autoconfigure/WebDaoExceptionHandler.java) | Database error and concurrent-update handling | `spring-tx` present, `problem.dao-advice-enabled` not `false` |
 | [`DatabaseConstraintResolverConfiguration`](src/main/java/com/neolama/common/exception/autoconfigure/DatabaseConstraintResolverConfiguration.java) | PostgreSQL and MongoDB constraint name resolvers | As above, plus the driver |
 | [`WebSecurityExceptionHandler`](src/main/java/com/neolama/common/exception/autoconfigure/WebSecurityExceptionHandler.java) | Security handling, entry point, access-denied handler | Spring Security present, `problem.security-advice-enabled` not `false` |
 
@@ -611,8 +645,9 @@ class PaymentAdvice implements Exceptional {
 If the error key can stay the simple class name and the status is fixed, you need no handler:
 annotate the exception with `@ResponseStatus` and add messages.
 
-Your own advices do not set `type` from `problem.type-url`. Override `typeUrl()` from `Exceptional` if
-they should.
+Your own advices built on `Exceptional` get `type` from
+[`problem.type-url`](#configuration-reference) when they call `toResponse(...)`. Override `typeUrl()`
+in one that should use another URL, or none.
 
 ## Logging
 
@@ -679,9 +714,7 @@ Real responses from a demo application with this message bundle:
 message.MethodArgumentNotValidException.Size.employee.name=Name must be {4} to {3} characters long
 detail.HandlerMethodValidationException.Min.page=Page must be 0 or more, got {1}
 code.DuplicateKeyException.employees_name_key=employee-name-taken
-status.DuplicateKeyException.employees_name_key=409
 detail.DuplicateKeyException.employees_name_key=An employee with this name already exists
-status.DuplicateKeyException.states.name_1=409
 detail.DuplicateKeyException.states.name_1=A state with this name already exists
 detail.InvalidFormatException.dateOfBirth=Date of birth must be a date like 1990-12-31
 code.employee.not.found=employee-not-found
@@ -917,11 +950,11 @@ The `Problems.of(...)` example from [Several errors in one response](#several-er
 ```json
 {
   "type": "about:blank",
-  "status": 400,
+  "status": 413,
   "instance": "/api/documents",
   "method": "POST",
   "code": "max-upload-size-exceeded-exception",
-  "title": "Bad Request",
+  "title": "Content Too Large",
   "detail": "Upload file size exceeded the maximum allowed limit: 10 MB",
   "timestamp": "2026-10-25T14:10:42.700716Z"
 }

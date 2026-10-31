@@ -1,10 +1,12 @@
 package com.neolama.common.exception.advice.dao.constraint;
 
+import java.sql.SQLException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 import org.postgresql.util.ServerErrorMessage;
 
 /**
@@ -12,6 +14,7 @@ import org.postgresql.util.ServerErrorMessage;
  *
  * <p>Uses the constraint name the server reports in its structured error fields. When those are
  * missing, reads it from a message such as {@code violates unique constraint "employees_name_key"}.
+ * A unique violation is recognised by its SQLState, {@code 23505}.
  */
 public class PostgresConstraintNameResolver implements ConstraintNameResolver {
 
@@ -22,6 +25,13 @@ public class PostgresConstraintNameResolver implements ConstraintNameResolver {
   @Override
   public boolean supports(final Throwable cause) {
     return cause instanceof PSQLException;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean isUniqueViolation(final Throwable cause) {
+    return cause instanceof SQLException exception
+        && PSQLState.UNIQUE_VIOLATION.getState().equals(exception.getSQLState());
   }
 
   /** {@inheritDoc} */

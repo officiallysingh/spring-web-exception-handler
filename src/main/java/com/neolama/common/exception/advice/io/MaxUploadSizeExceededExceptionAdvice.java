@@ -15,10 +15,10 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
  * Advice trait that handles {@link MaxUploadSizeExceededException} and returns {@link
  * ProblemDetails}.
  *
- * <p>The status defaults to {@link HttpStatus#BAD_REQUEST}. The maximum size is taken from the
- * exception, or else from the last number in the most specific cause's message, which is the limit
- * in the messages of Tomcat and Jetty. It is passed to the detail as a readable size such as {@code
- * 10 MB}.
+ * <p>The status defaults to {@link HttpStatus#CONTENT_TOO_LARGE}, the status Spring gives this
+ * exception. The maximum size is taken from the exception, or else from the last number in the most
+ * specific cause's message, which is the limit in the messages of Tomcat and Jetty. It is passed to
+ * the detail as a readable size such as {@code 10 MB}.
  */
 public interface MaxUploadSizeExceededExceptionAdvice extends Exceptional {
 
@@ -39,7 +39,7 @@ public interface MaxUploadSizeExceededExceptionAdvice extends Exceptional {
             : ProblemUtils.lastNumber(exception.getMostSpecificCause().getMessage(), -1);
     final String maxFileSizeAllowed = bytes != -1 ? ProblemUtils.formatSize(bytes) : "UNKNOWN";
 
-    final HttpStatus status = resolveStatus(errorKey, HttpStatus.BAD_REQUEST);
+    final HttpStatus status = resolveStatus(errorKey, HttpStatus.CONTENT_TOO_LARGE);
     final ProblemDetails problemDetails =
         toProblemDetails(errorKey, status, UPLOAD_SIZE_EXCEEDED_DETAIL, maxFileSizeAllowed);
     return toResponse(problemDetails, request, exception);

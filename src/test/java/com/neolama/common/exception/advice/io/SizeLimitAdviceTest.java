@@ -19,7 +19,7 @@ class SizeLimitAdviceTest {
   void knownMaxUploadSize() {
     assertProblem(
         this.mvc.get().uri("/io/max-upload-size").exchange(),
-        400,
+        413,
         "max-upload-size-exceeded-exception",
         UPLOAD + "1 MB");
   }
@@ -28,7 +28,7 @@ class SizeLimitAdviceTest {
   void tomcatFileSizeLimitUsesPermittedSizeNotFieldNameDigits() {
     assertProblem(
         this.mvc.get().uri("/io/upload-file-size-tomcat").exchange(),
-        400,
+        413,
         "max-upload-size-exceeded-exception",
         UPLOAD + "1 MB");
   }
@@ -37,7 +37,7 @@ class SizeLimitAdviceTest {
   void tomcatRequestSizeLimitUsesConfiguredMaximumNotActualSize() {
     assertProblem(
         this.mvc.get().uri("/io/upload-request-size-tomcat").exchange(),
-        400,
+        413,
         "max-upload-size-exceeded-exception",
         UPLOAD + "1 MB");
   }
@@ -46,7 +46,7 @@ class SizeLimitAdviceTest {
   void unknownMaxUploadSize() {
     assertProblem(
         this.mvc.get().uri("/io/max-upload-size-unknown").exchange(),
-        400,
+        413,
         "max-upload-size-exceeded-exception",
         UPLOAD + "UNKNOWN");
   }
@@ -55,17 +55,17 @@ class SizeLimitAdviceTest {
   void dataBufferLimit() {
     assertProblem(
         this.mvc.get().uri("/io/data-buffer-limit").exchange(),
-        400,
+        500,
         "data-buffer-limit-exception",
-        "Request data exceeded the allowed limit: 1 KB");
+        "Response data from a downstream service exceeded the allowed limit: 256 KB");
   }
 
   @Test
   void unknownDataBufferLimit() {
     assertProblem(
         this.mvc.get().uri("/io/data-buffer-limit-unknown").exchange(),
-        400,
+        500,
         "data-buffer-limit-exception",
-        "Request data exceeded the allowed limit: UNKNOWN");
+        "Response data from a downstream service exceeded the allowed limit: UNKNOWN");
   }
 }

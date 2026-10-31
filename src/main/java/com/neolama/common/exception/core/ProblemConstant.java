@@ -49,14 +49,26 @@ public class ProblemConstant {
   /** Fallback problem title when none is configured. */
   public static final String DEFAULT_TITLE = "Internal Server Error";
 
+  /** Fallback details of a {@link Problem} entry when none are configured. */
+  public static final String DEFAULT_PROBLEM_DETAILS =
+      "Something went wrong while processing the request";
+
   /** Fallback problem detail when none is configured. */
   public static final String DEFAULT_DETAIL = "An unexpected error occurred";
 
   /** Client-safe fallback detail for a failed request validation. */
   public static final String VALIDATION_FAILED_DETAIL = "Request validation failed";
 
-  /** Client-safe fallback detail for a data-integrity or duplicate-key violation. */
-  public static final String DATA_CONFLICT_DETAIL = "The request conflicts with existing data";
+  /** Client-safe fallback detail for a duplicate-key or unique-constraint violation. */
+  public static final String DUPLICATE_KEY_DETAIL = "The request conflicts with existing data";
+
+  /** Fallback detail for an optimistic-lock conflict, such as an {@code @Version} mismatch. */
+  public static final String OPTIMISTIC_LOCK_DETAIL =
+      "The resource was changed by another request; reload it and try again";
+
+  /** Fallback detail for a lock timeout, deadlock, or other temporary database contention. */
+  public static final String CONCURRENCY_FAILURE_DETAIL =
+      "The request could not be completed because of concurrent activity; please retry";
 
   /** Client-safe fallback detail for a request body that cannot be read. */
   public static final String MALFORMED_BODY_DETAIL = "Malformed request body";
@@ -68,7 +80,10 @@ public class ProblemConstant {
   public static final String UPLOAD_SIZE_EXCEEDED_DETAIL =
       "Upload file size exceeded the maximum allowed limit: {0}";
 
-  /** Fallback detail for request data over a buffer limit; {@code {0}} is the readable limit. */
+  /**
+   * Fallback detail for downstream response data over a buffer limit; {@code {0}} is the readable
+   * limit.
+   */
   public static final String DATA_BUFFER_LIMIT_DETAIL =
-      "Request data exceeded the allowed limit: {0}";
+      "Response data from a downstream service exceeded the allowed limit: {0}";
 }

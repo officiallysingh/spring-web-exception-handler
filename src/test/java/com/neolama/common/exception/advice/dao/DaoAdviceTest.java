@@ -16,44 +16,58 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 @AdviceTest
 class DaoAdviceTest {
 
-  private static final String CONFLICT = "The request conflicts with existing data";
+  private static final String DUPLICATE = "The request conflicts with existing data";
+
+  private static final String GENERIC = "An unexpected error occurred";
 
   @Autowired private MockMvcTester mvc;
 
+  /** The test bundle sets status 422 for this constraint, which wins over the 409 default. */
   @Test
   void configuredPostgresConstraint() {
     assertProblem(
         this.mvc.get().uri("/dao/duplicate-postgres").exchange(),
+        422,
+        "employee-name-taken",
+        "Employee name must be unique");
+  }
+
+  /** The test bundle sets no status for this index, so the duplicate default applies. */
+  @Test
+  void duplicateMongoIndexIsConflict() {
+    assertProblem(
+        this.mvc.get().uri("/dao/duplicate-mongo").exchange(),
         409,
+        "conflict",
+        "State name must be unique");
+  }
+
+  @Test
+  void unconfiguredDuplicateIsConflictAndHidesDriverMessage() {
+    assertProblem(
+        this.mvc.get().uri("/dao/duplicate-postgres-unconfigured").exchange(),
+        409,
+        "conflict",
+        DUPLICATE);
+  }
+
+  /** Same key and response as a {@code DuplicateKeyException}, so one bundle fits JDBC and JPA. */
+  @Test
+  void jpaUniqueViolationIsAnsweredAsDuplicateKey() {
+    assertProblem(
+        this.mvc.get().uri("/dao/duplicate-postgres-jpa").exchange(),
+        422,
         "employee-name-taken",
         "Employee name must be unique");
   }
 
   @Test
-  void configuredMongoIndex() {
-    assertProblem(
-        this.mvc.get().uri("/dao/duplicate-mongo").exchange(),
-        500,
-        "internal-server-error",
-        "State name must be unique");
-  }
-
-  @Test
-  void unconfiguredConstraintHidesDriverMessage() {
-    assertProblem(
-        this.mvc.get().uri("/dao/duplicate-postgres-unconfigured").exchange(),
-        500,
-        "internal-server-error",
-        CONFLICT);
-  }
-
-  @Test
-  void violationWithoutConstraintNameGetsGenericKey() {
+  void otherViolationIsServerErrorWithGenericDetail() {
     assertProblem(
         this.mvc.get().uri("/dao/not-null-postgres").exchange(),
         500,
         "data-integrity-violation-exception",
-        CONFLICT);
+        GENERIC);
   }
 
   @Test
@@ -62,7 +76,7 @@ class DaoAdviceTest {
         this.mvc.get().uri("/dao/null-message").exchange(),
         500,
         "data-integrity-violation-exception",
-        CONFLICT);
+        GENERIC);
   }
 
   @Nested
@@ -77,7 +91,7 @@ class DaoAdviceTest {
           this.mvc.get().uri("/dao/not-null-postgres").exchange(),
           500,
           "data-integrity-violation-exception",
-          "An unexpected error occurred");
+          GENERIC);
     }
   }
 }

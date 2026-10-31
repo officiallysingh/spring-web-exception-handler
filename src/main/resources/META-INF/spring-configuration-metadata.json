@@ -3,19 +3,19 @@
     {
       "name": "problem.type-url",
       "type": "java.lang.String",
-      "description": "Base URL of a page that documents problem codes, such as https://example.com/problems. When set, the problem 'type' is this URL with the problem code as fragment, e.g. https://example.com/problems#order-not-found. Must be an absolute URI. When unset, 'type' is about:blank."
+      "description": "Base URL of a page that documents problem codes, such as https://example.com/problems. When set, the problem 'type' is this URL with the problem code as fragment, e.g. https://example.com/problems#order-not-found. Applies to every advice that calls Exceptional#toResponse, including application advices. Must be an absolute URI. When unset, 'type' is about:blank."
     },
     {
       "name": "problem.dao-advice-enabled",
       "type": "java.lang.Boolean",
       "defaultValue": "true",
-      "description": "Default: true, Whether or not to Enable DAO exception handling advices."
+      "description": "Whether to turn data-integrity, duplicate-key, and concurrency (optimistic and pessimistic locking) exceptions into problem responses. When false, the Throwable fallback handles them."
     },
     {
       "name": "problem.security-advice-enabled",
       "type": "java.lang.Boolean",
       "defaultValue": "true",
-      "description": "Default: true, Whether or not to Enable Security exception handling advices."
+      "description": "Whether to turn Spring Security authentication and access-denied exceptions into problem responses, and to register the problem AuthenticationEntryPoint and AccessDeniedHandler beans."
     }
   ]
 }

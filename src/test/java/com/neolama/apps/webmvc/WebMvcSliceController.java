@@ -1,7 +1,7 @@
 package com.neolama.apps.webmvc;
 
 import java.sql.SQLException;
-import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -15,9 +15,9 @@ public class WebMvcSliceController {
     throw new IllegalStateException("boom");
   }
 
-  @GetMapping("/slice/data-integrity")
-  String dataIntegrity() {
-    throw new DataIntegrityViolationException("insert failed", new SQLException("boom"));
+  @GetMapping("/slice/duplicate-key")
+  String duplicateKey() {
+    throw new DuplicateKeyException("insert failed", new SQLException("boom"));
   }
 
   @GetMapping("/slice/access-denied")

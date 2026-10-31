@@ -14,14 +14,15 @@ import org.springframework.web.context.request.NativeWebRequest;
 /**
  * Advice trait that handles {@link DataBufferLimitException} and returns {@link ProblemDetails}.
  *
- * <p>The status defaults to {@link HttpStatus#BAD_REQUEST}. A size parsed from the exception
- * message is passed as a detail argument, as a readable size such as {@code 1 KB}; for example
- * {@code Part exceeded the disk usage limit of 1024 bytes} gives {@code 1 KB}.
+ * <p>The status defaults to {@link HttpStatus#INTERNAL_SERVER_ERROR}. A size parsed from the
+ * exception message is passed as a detail argument, as a readable size such as {@code 256 KB}; for
+ * example {@code Exceeded limit on max bytes to buffer : 262144} gives {@code 256 KB}.
  */
 public interface DataBufferLimitExceptionAdvice extends Exceptional {
 
   /**
-   * Handles a request that exceeded the configured data-buffer limit.
+   * Handles response data from a downstream service, such as a {@code WebClient} body, that
+   * exceeded the configured data-buffer limit.
    *
    * @param exception the data-buffer limit exception
    * @param request the current web request
@@ -31,11 +32,11 @@ public interface DataBufferLimitExceptionAdvice extends Exceptional {
   default ProblemDetails handleDataBufferLimitException(
       final DataBufferLimitException exception, final NativeWebRequest request) {
     final long bytes = ProblemUtils.firstNumber(exception.getMessage(), -1);
-    final String maxFileSizeAllowed = bytes != -1 ? ProblemUtils.formatSize(bytes) : "UNKNOWN";
+    final String maxBufferSize = bytes != -1 ? ProblemUtils.formatSize(bytes) : "UNKNOWN";
     final String errorKey = ClassUtils.getShortClassName(exception.getClass());
-    final HttpStatus status = resolveStatus(errorKey, HttpStatus.BAD_REQUEST);
+    final HttpStatus status = resolveStatus(errorKey, HttpStatus.INTERNAL_SERVER_ERROR);
     final ProblemDetails problemDetails =
-        toProblemDetails(errorKey, status, DATA_BUFFER_LIMIT_DETAIL, maxFileSizeAllowed);
+        toProblemDetails(errorKey, status, DATA_BUFFER_LIMIT_DETAIL, maxBufferSize);
     return toResponse(problemDetails, request, exception);
   }
 }

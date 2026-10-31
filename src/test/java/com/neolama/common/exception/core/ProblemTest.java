@@ -27,9 +27,9 @@ class ProblemTest {
   @Test
   void ofErrorKeyUsesLibraryDefaults() {
     final Problem problem = Problem.of("order.not.found");
-    assertThat(problem.getCode()).isEqualTo("500");
+    assertThat(problem.getCode()).isEqualTo("order-not-found");
     assertThat(problem.getMessage()).isEqualTo("Internal Server Error");
-    assertThat(problem.getDetails()).isEqualTo("An unexpected error occurred");
+    assertThat(problem.getDetails()).isEqualTo("Something went wrong while processing the request");
   }
 
   @Test
@@ -56,9 +56,9 @@ class ProblemTest {
   @Test
   void ofErrorKeyWithNullDefaultsUsesLibraryDefaults() {
     final Problem problem = Problem.of("order.not.found", null, null, null);
-    assertThat(problem.getCode()).isEqualTo("500");
+    assertThat(problem.getCode()).isEqualTo("order-not-found");
     assertThat(problem.getMessage()).isEqualTo("Internal Server Error");
-    assertThat(problem.getDetails()).isEqualTo("An unexpected error occurred");
+    assertThat(problem.getDetails()).isEqualTo("Something went wrong while processing the request");
   }
 
   @Test
@@ -66,6 +66,16 @@ class ProblemTest {
     TestMessageSources.install(Map.of("detail.order.not.found", "From messages"));
     assertThat(Problem.of("order.not.found", null, null, "From Java").getDetails())
         .isEqualTo("From messages");
+  }
+
+  @Test
+  void malformedErrorKeyIsRejected() {
+    assertThatIllegalArgumentException()
+        .isThrownBy(() -> Problem.of("12345"))
+        .withMessageContaining("Invalid error key '12345'");
+    assertThatIllegalArgumentException()
+        .isThrownBy(() -> Problem.of("row 3", null, null, null))
+        .withMessageContaining("Invalid error key 'row 3'");
   }
 
   @Test

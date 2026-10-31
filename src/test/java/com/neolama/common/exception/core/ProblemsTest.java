@@ -182,6 +182,17 @@ class ProblemsTest {
     }
 
     @Test
+    void malformedErrorKeyIsRejected() {
+      assertThatIllegalArgumentException()
+          .isThrownBy(() -> Problems.of("12345"))
+          .withMessageContaining("Invalid error key '12345'");
+      assertThatIllegalArgumentException()
+          .isThrownBy(
+              () -> Problems.of(DefaultProblem.of("not found", "detail", HttpStatus.NOT_FOUND)))
+          .withMessageContaining("Invalid error key 'not found'");
+    }
+
+    @Test
     void errorTypeWithoutKeyIsRejected() {
       assertThatIllegalArgumentException()
           .isThrownBy(() -> Problems.of(DefaultProblem.of(" ", "detail", HttpStatus.CONFLICT)));

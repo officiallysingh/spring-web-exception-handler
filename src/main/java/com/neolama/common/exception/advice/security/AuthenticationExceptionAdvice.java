@@ -8,9 +8,12 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.NativeWebRequest;
 
 /**
- * Advice trait that handles {@link AuthenticationException} and returns {@link ProblemDetails}.
+ * Advice trait that handles {@link AuthenticationException} and its subclasses, such as {@code
+ * BadCredentialsException} and {@code InsufficientAuthenticationException}, and returns {@link
+ * ProblemDetails}.
  *
- * <p>The status defaults to {@link HttpStatus#UNAUTHORIZED}.
+ * <p>The status defaults to {@link HttpStatus#UNAUTHORIZED}. The error key is the simple name of
+ * the exception thrown, so each subclass can have its own messages.
  */
 public interface AuthenticationExceptionAdvice extends Exceptional {
 

@@ -15,11 +15,11 @@ class WebDaoExceptionHandlerTest {
 
   private final WebDaoExceptionHandler handler =
       new WebDaoExceptionHandler(
-          List.of(new PostgresConstraintNameResolver(), new MongoConstraintNameResolver()), "");
+          List.of(new PostgresConstraintNameResolver(), new MongoConstraintNameResolver()));
 
   @Test
   void handlerWithoutResolversReturnsNull() {
-    final WebDaoExceptionHandler noResolvers = new WebDaoExceptionHandler(List.of(), "");
+    final WebDaoExceptionHandler noResolvers = new WebDaoExceptionHandler(List.of());
     assertThat(noResolvers.resolveConstraintName(new SQLException("boom"))).isNull();
   }
 
@@ -44,6 +44,20 @@ class WebDaoExceptionHandlerTest {
   @Test
   void unsupportedCauseReturnsNull() {
     assertThat(this.handler.resolveConstraintName(new SQLException("H2 error"))).isNull();
+  }
+
+  @Test
+  void uniqueViolationIsAskedOfTheSupportingResolver() {
+    assertThat(
+            this.handler.isUniqueViolation(
+                new PSQLException("duplicate key", PSQLState.UNIQUE_VIOLATION)))
+        .isTrue();
+    assertThat(this.handler.isUniqueViolation(new MongoException(11000, "E11000"))).isTrue();
+    assertThat(
+            this.handler.isUniqueViolation(
+                new PSQLException("not null", PSQLState.NOT_NULL_VIOLATION)))
+        .isFalse();
+    assertThat(this.handler.isUniqueViolation(new SQLException("H2 error", "23505"))).isFalse();
   }
 
   @Test

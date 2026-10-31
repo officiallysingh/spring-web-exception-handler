@@ -35,21 +35,9 @@ class MediaTypeAdviceTest {
   }
 
   @Test
-  void unsupportedMediaTypeStatusException() {
-    final MvcTestResult result =
-        this.mvc.get().uri("/http/webflux-unsupported-media-type").exchange();
-    assertProblem(
-        result,
-        415,
-        "unsupported-media-type-status-exception",
-        "Media Type: text/plain Not Supported, Supported Media Types are: application/json");
-    assertThat(result).headers().hasValue(HttpHeaders.ACCEPT, "application/json");
-  }
-
-  @Test
   void noSupportedMediaTypesSendsNoAcceptHeader() {
-    final MvcTestResult result = this.mvc.get().uri("/http/webflux-no-media-types").exchange();
-    assertProblem(result, 415, "unsupported-media-type-status-exception");
+    final MvcTestResult result = this.mvc.get().uri("/http/no-media-types").exchange();
+    assertProblem(result, 415, "http-media-type-not-supported-exception");
     assertThat(result).headers().doesNotContainHeader(HttpHeaders.ACCEPT);
   }
 
@@ -66,22 +54,13 @@ class MediaTypeAdviceTest {
   }
 
   @Test
-  void notAcceptableStatusException() {
-    final MvcTestResult result = this.mvc.get().uri("/http/webflux-not-acceptable").exchange();
+  void notAcceptableWithoutSupportedMediaTypesSendsNoAcceptHeader() {
+    final MvcTestResult result = this.mvc.get().uri("/http/not-acceptable-reason").exchange();
     assertProblem(
         result,
         406,
-        "not-acceptable-status-exception",
-        "Media Type Not Acceptable, except: application/json");
-    assertThat(result).headers().hasValue(HttpHeaders.ACCEPT, "application/json");
-  }
-
-  @Test
-  void notAcceptableStatusExceptionWithOnlyReasonSendsNoAcceptHeader() {
-    final MvcTestResult result =
-        this.mvc.get().uri("/http/webflux-not-acceptable-reason").exchange();
-    assertProblem(
-        result, 406, "not-acceptable-status-exception", "Media Type Not Acceptable, except: ");
+        "http-media-type-not-acceptable-exception",
+        "Media Type Not Acceptable, except: ");
     assertThat(result).headers().doesNotContainHeader(HttpHeaders.ACCEPT);
   }
 }

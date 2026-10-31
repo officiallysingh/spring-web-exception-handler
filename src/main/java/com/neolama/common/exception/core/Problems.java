@@ -190,7 +190,7 @@ public class Problems {
      */
     Builder(final ErrorType errorType) {
       Assert.notNull(errorType, "'errorType' must not be null");
-      Assert.hasText(errorType.getErrorKey(), "'errorType.errorKey' must not be null or empty");
+      ProblemUtils.requireValidErrorKey(errorType.getErrorKey());
       this.errorType = errorType;
     }
 
@@ -200,8 +200,7 @@ public class Problems {
      * @param errorKey the message-source key used to resolve problem text
      */
     Builder(final String errorKey) {
-      Assert.hasText(errorKey, "'errorKey' must not be null or empty");
-      this.errorKey = errorKey;
+      this.errorKey = ProblemUtils.requireValidErrorKey(errorKey);
     }
 
     /**

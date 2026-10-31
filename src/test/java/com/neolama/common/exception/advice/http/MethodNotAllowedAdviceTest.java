@@ -10,7 +10,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import org.springframework.test.web.servlet.assertj.MvcTestResult;
 
-/** 405 responses for both method exceptions carry the {@code Allow} header. */
+/** 405 responses carry the {@code Allow} header when the supported methods are known. */
 @AdviceTest
 class MethodNotAllowedAdviceTest {
 
@@ -25,32 +25,10 @@ class MethodNotAllowedAdviceTest {
   }
 
   @Test
-  void methodNotAllowedExceptionUsesDefaultDetail() {
-    final MvcTestResult result = this.mvc.get().uri("/http/webflux-method-not-allowed").exchange();
-    assertProblem(
-        result,
-        405,
-        "method-not-allowed-exception",
-        "Requested Method: POST not allowed, allowed methods are: GET");
-    assertThat(result).headers().hasValue(HttpHeaders.ALLOW, "GET");
-  }
-
-  @Test
   void noSupportedMethodsSendsNoAllowHeader() {
     final MvcTestResult result = this.mvc.get().uri("/http/no-methods").exchange();
     assertProblem(
         result, 405, "http-request-method-not-supported-exception", "Use None instead of POST");
-    assertThat(result).headers().doesNotContainHeader(HttpHeaders.ALLOW);
-  }
-
-  @Test
-  void methodNotAllowedExceptionWithoutSupportedMethods() {
-    final MvcTestResult result = this.mvc.get().uri("/http/webflux-no-methods").exchange();
-    assertProblem(
-        result,
-        405,
-        "method-not-allowed-exception",
-        "Requested Method: POST not allowed, allowed methods are: None");
     assertThat(result).headers().doesNotContainHeader(HttpHeaders.ALLOW);
   }
 }

@@ -1,13 +1,9 @@
 package com.neolama.common.exception.autoconfigure;
 
-import com.neolama.common.exception.advice.Exceptional;
 import com.neolama.common.exception.advice.security.ProblemAccessDeniedHandler;
 import com.neolama.common.exception.advice.security.ProblemAuthenticationEntryPoint;
 import com.neolama.common.exception.advice.security.SecurityAdvice;
-import java.net.URI;
-import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -42,24 +38,6 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
 @ConditionalOnClass(value = {SecurityAutoConfiguration.class})
 @RestControllerAdvice
 public class WebSecurityExceptionHandler implements SecurityAdvice {
-
-  /** Base URL for problem types, from {@code problem.type-url}, or {@code null} when unset. */
-  private final @Nullable URI typeUrl;
-
-  /**
-   * Creates the handler.
-   *
-   * @param typeUrl the {@code problem.type-url} property, may be blank
-   */
-  WebSecurityExceptionHandler(@Value("${problem.type-url:}") final String typeUrl) {
-    this.typeUrl = Exceptional.parseTypeUrl(typeUrl);
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  public @Nullable URI typeUrl() {
-    return this.typeUrl;
-  }
 
   /**
    * Creates an entry point that forwards authentication failures to the MVC exception resolver.

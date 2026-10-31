@@ -37,7 +37,7 @@ class TypeUrlTest {
 
   @Test
   void daoHandlerSetsType() {
-    assertType("/dao/duplicate-postgres-unconfigured", BASE + "#internal-server-error");
+    assertType("/dao/duplicate-postgres-unconfigured", BASE + "#conflict");
   }
 
   @Test

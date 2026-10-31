@@ -32,9 +32,9 @@ class WebMvcSliceTest {
   @Test
   void databaseErrorUsesDaoHandler() {
     assertProblem(
-        this.mvc.get().uri("/slice/data-integrity").exchange(),
-        500,
-        "data-integrity-violation-exception",
+        this.mvc.get().uri("/slice/duplicate-key").exchange(),
+        409,
+        "duplicate-key-exception",
         "The request conflicts with existing data");
   }
 

@@ -23,7 +23,7 @@ class IoTestController {
 
   @GetMapping("/data-buffer-limit")
   String dataBufferLimit() {
-    throw new DataBufferLimitException("Part exceeded the disk usage limit of 1024 bytes");
+    throw new DataBufferLimitException("Exceeded limit on max bytes to buffer : 262144");
   }
 
   @GetMapping("/data-buffer-limit-unknown")

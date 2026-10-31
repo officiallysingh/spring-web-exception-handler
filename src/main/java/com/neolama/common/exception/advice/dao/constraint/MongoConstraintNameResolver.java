@@ -2,6 +2,7 @@ package com.neolama.common.exception.advice.dao.constraint;
 
 import static com.neolama.common.exception.core.ProblemConstant.DOT;
 
+import com.mongodb.ErrorCategory;
 import com.mongodb.MongoException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -11,7 +12,9 @@ import org.jspecify.annotations.Nullable;
  * {@link ConstraintNameResolver} for MongoDB driver exceptions.
  *
  * <p>Reads {@code collection.index} from a duplicate-key message such as {@code E11000 duplicate
- * key error collection: db.states index: name_1 dup key: ...}, which gives {@code states.name_1}.
+ * key error collection: db.states index: name_1 dup key: ...}, which gives {@code states.name_1}. A
+ * unique violation is recognised by its error code, in the driver's {@link
+ * ErrorCategory#DUPLICATE_KEY} category.
  *
  * @author Rajveer Singh
  */
@@ -25,6 +28,13 @@ public class MongoConstraintNameResolver implements ConstraintNameResolver {
   @Override
   public boolean supports(final Throwable cause) {
     return cause instanceof MongoException;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean isUniqueViolation(final Throwable cause) {
+    return cause instanceof MongoException exception
+        && ErrorCategory.fromErrorCode(exception.getCode()) == ErrorCategory.DUPLICATE_KEY;
   }
 
   /** {@inheritDoc} */

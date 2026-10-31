@@ -36,6 +36,14 @@ class MongoConstraintNameResolverTest {
   }
 
   @Test
+  void duplicateKeyCodesAreUniqueViolations() {
+    assertThat(this.resolver.isUniqueViolation(new MongoException(11000, "E11000"))).isTrue();
+    assertThat(this.resolver.isUniqueViolation(new MongoException(11001, "E11001"))).isTrue();
+    assertThat(this.resolver.isUniqueViolation(new MongoException(121, "validation"))).isFalse();
+    assertThat(this.resolver.isUniqueViolation(new RuntimeException("E11000"))).isFalse();
+  }
+
+  @Test
   void emptyMessageReturnsNull() {
     assertThat(this.resolver.resolveConstraintName(new MongoException(""))).isNull();
   }

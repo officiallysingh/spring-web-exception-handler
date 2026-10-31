@@ -1,6 +1,7 @@
 package com.neolama.common.exception.core;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
 import com.neolama.common.exception.support.ConflictException;
 import org.junit.jupiter.api.Nested;
@@ -40,6 +41,46 @@ class ProblemUtilsTest {
           .isEqualTo("null-pointer-exception");
       assertThat(ProblemUtils.getProblemCode("IOException")).isEqualTo("i-o-exception");
       assertThat(ProblemUtils.getProblemCode("OrderNotFound")).isEqualTo("order-not-found");
+    }
+
+    @Test
+    void separatorsBecomeSingleHyphens() {
+      assertThat(ProblemUtils.getProblemCode("RowInvalid")).isEqualTo("row-invalid");
+      assertThat(ProblemUtils.getProblemCode("row.invalid")).isEqualTo("row-invalid");
+      assertThat(ProblemUtils.getProblemCode("order_not__found")).isEqualTo("order-not-found");
+      assertThat(ProblemUtils.getProblemCode("Order.NotFound")).isEqualTo("order-not-found");
+      assertThat(ProblemUtils.getProblemCode(" order not  found. ")).isEqualTo("order-not-found");
+    }
+
+    /** Library-built keys can hold anything, so the conversion never fails. */
+    @Test
+    void unusualKeysDoNotFail() {
+      assertThat(ProblemUtils.getProblemCode("12345")).isEqualTo("12345");
+      assertThat(ProblemUtils.getProblemCode("states.name_1")).isEqualTo("states-name-1");
+      assertThat(ProblemUtils.getProblemCode("!!!")).isEqualTo("!!!");
+    }
+  }
+
+  @Nested
+  class ErrorKeyFormat {
+
+    @Test
+    void acceptsLettersDigitsDotsHyphensAndUnderscores() {
+      for (final String key :
+          new String[] {"OrderNotFound", "order.not.found", "order-not-found", "row_3", "a"}) {
+        assertThat(ProblemUtils.requireValidErrorKey(key)).isEqualTo(key);
+      }
+    }
+
+    @Test
+    void rejectsOtherKeysWithTheExpectedFormat() {
+      for (final String key : new String[] {"12345", "order not found", ".order", "order!", " "}) {
+        assertThatIllegalArgumentException()
+            .isThrownBy(() -> ProblemUtils.requireValidErrorKey(key))
+            .withMessageContaining("Invalid error key '" + key + "'")
+            .withMessageContaining("start with a letter")
+            .withMessageContaining("order.not.found");
+      }
     }
 
     @Test
