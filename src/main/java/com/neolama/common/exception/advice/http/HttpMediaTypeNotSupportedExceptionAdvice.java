@@ -40,7 +40,7 @@ public interface HttpMediaTypeNotSupportedExceptionAdvice extends Exceptional {
       setResponseHeaders(request, headers);
     }
     final String errorKey = ProblemUtils.errorKey(exception.getClass());
-    final HttpStatus status = resolveStatus(errorKey, HttpStatus.UNSUPPORTED_MEDIA_TYPE);
+    final HttpStatus status = resolveStatus(exception, HttpStatus.UNSUPPORTED_MEDIA_TYPE);
     final ProblemDetails problemDetails =
         toProblemDetails(
             errorKey,

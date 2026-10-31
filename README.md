@@ -176,11 +176,18 @@ A configured message always wins over the library's and your Java defaults. A `s
 not a known status code is ignored, with a warning in the log such as
 `Ignoring status.OrderLockedException=4O9: not an HTTP status code`.
 
-When an error key extends the exception name, such as `MissingServletRequestParameterException.page`,
-`status.` is looked up for the full key first and then for the exception name alone. So
-`status.MissingServletRequestParameterException.page=422` sets the status for one parameter, and
-`status.MissingServletRequestParameterException=422` for all of them. For an
-[invalid JSON value](#invalid-json-values), the candidate keys are tried in order.
+When an error key extends the exception name, such as `MissingServletRequestParameterException.page`
+or `DuplicateKeyException.employees_name_key`, `status.` is looked up for the full key first and then
+for the exception name alone. So `status.MissingServletRequestParameterException.page=422` sets the
+status for one parameter, and `status.MissingServletRequestParameterException=422` for all of them.
+For an [invalid JSON value](#invalid-json-values), the candidate keys are tried in order.
+
+Every advice resolves the status the same way, first match wins:
+
+1. a `status.` message for the error key, most specific key first;
+2. `@ResponseStatus` on the exception class or on one of its causes;
+3. the status of a Spring `ErrorResponse`, such as `413` for `MaxUploadSizeExceededException`;
+4. the advice's default, listed in [Handled exceptions](#handled-exceptions).
 
 ### Which error key?
 
@@ -378,9 +385,10 @@ Spring's `ResponseStatusException` also works: its status is used, and its reaso
 
 ## Handled exceptions
 
-The advices live in [`advice`](src/main/java/com/neolama/common/exception/advice). Every status can
-be changed with `status.{errorKey}`, except for `ResponseStatusException`, which always uses its own
-status. "Spring's message" means the exception's own message, which is
+The advices live in [`advice`](src/main/java/com/neolama/common/exception/advice). Every status is
+resolved by the [same rule](#messages-and-error-keys), so it can be changed with `status.{errorKey}`
+or `@ResponseStatus` on your own subclass, except for `ResponseStatusException`, which always uses
+its own status. "Spring's message" means the exception's own message, which is
 safe to show for these client errors.
 
 ### General
@@ -489,8 +497,9 @@ driver error, not by the exception class: under JPA, Hibernate reports a unique 
 | Detail | `The request conflicts with existing data` | `An unexpected error occurred` |
 
 Without a known constraint name the error key is the exception name alone, such as
-`DuplicateKeyException`. Configured messages win in every case. The database's own message, which
-can contain data values, is never sent to clients.
+`DuplicateKeyException`. Configured messages win in every case, and `status.DuplicateKeyException`
+or `status.DataIntegrityViolationException` sets the status for every constraint that has no entry of
+its own. The database's own message, which can contain data values, is never sent to clients.
 
 | Database | Constraint name | Example error key |
 | --- | --- | --- |
@@ -517,8 +526,9 @@ Spring reports locking failures as a `ConcurrencyFailureException` subclass:
 | Error key | `OptimisticLockingFailureException`, also for JPA's subclasses | `PessimisticLockingFailureException`, or `ConcurrencyFailureException` for a plain one |
 | Detail | `The resource was changed by another request; reload it and try again` | `The request could not be completed because of concurrent activity; please retry` |
 
-The error key is the Spring base class, not the class thrown, so one bundle fits JPA and MongoDB. The
-log names the class thrown. A `503` is logged at ERROR with its stack trace, so deadlocks and lock
+The error key is the Spring base class, not the class thrown, so one bundle fits JPA and MongoDB. A
+`status.` message for the class thrown, such as `status.CannotAcquireLockException`, is tried before
+the base class. The log names the class thrown. A `503` is logged at ERROR with its stack trace, so deadlocks and lock
 timeouts stay visible.
 
 ## Spring Security
@@ -635,7 +645,7 @@ class PaymentAdvice implements Exceptional {
   ProblemDetails handlePaymentDeclined(
       final PaymentDeclinedException exception, final NativeWebRequest request) {
     final String errorKey = "PaymentDeclinedException." + exception.getReasonCode();
-    final HttpStatus status = resolveStatus(errorKey, HttpStatus.PAYMENT_REQUIRED);
+    final HttpStatus status = resolveStatus(exception, HttpStatus.PAYMENT_REQUIRED, errorKey);
     final ProblemDetails problemDetails =
         toProblemDetails(errorKey, status, "Payment was declined: {0}", exception.getReasonCode());
     return toResponse(problemDetails, request, exception);

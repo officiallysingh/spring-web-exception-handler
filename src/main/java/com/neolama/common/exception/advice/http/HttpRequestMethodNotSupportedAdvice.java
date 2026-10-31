@@ -41,7 +41,7 @@ public interface HttpRequestMethodNotSupportedAdvice extends Exceptional {
       setResponseHeaders(request, headers);
     }
     final String errorKey = ProblemUtils.errorKey(exception.getClass());
-    final HttpStatus status = resolveStatus(errorKey, HttpStatus.METHOD_NOT_ALLOWED);
+    final HttpStatus status = resolveStatus(exception, HttpStatus.METHOD_NOT_ALLOWED);
     final ProblemDetails problemDetails =
         toProblemDetails(
             errorKey,

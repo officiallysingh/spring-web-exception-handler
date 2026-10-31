@@ -41,7 +41,7 @@ public interface TypeMismatchAdvice extends Exceptional {
     final String propertyName = exception.getPropertyName();
     final String errorKey = exceptionKey + DOT + exception.getErrorCode() + DOT + propertyName;
     final HttpStatus status =
-        resolveStatus(new String[] {errorKey, exceptionKey}, HttpStatus.BAD_REQUEST);
+        resolveStatus(exception, HttpStatus.BAD_REQUEST, errorKey, exceptionKey);
     final ProblemDetails problemDetails =
         ProblemDetails.of(errorKey, "Invalid value for property " + propertyName, status);
     return toResponse(problemDetails, request, exception);

@@ -55,8 +55,13 @@ public interface ConcurrencyFailureAdvice extends Exceptional {
       keyClass = ConcurrencyFailureException.class;
     }
     final String errorKey = ProblemUtils.errorKey(keyClass);
+    final HttpStatus defaultStatus =
+        optimistic ? HttpStatus.CONFLICT : HttpStatus.SERVICE_UNAVAILABLE;
+    final String thrownKey = ProblemUtils.errorKey(exception.getClass());
     final HttpStatus status =
-        resolveStatus(errorKey, optimistic ? HttpStatus.CONFLICT : HttpStatus.SERVICE_UNAVAILABLE);
+        thrownKey.equals(errorKey)
+            ? resolveStatus(exception, defaultStatus, errorKey)
+            : resolveStatus(exception, defaultStatus, thrownKey, errorKey);
     final ProblemDetails problemDetails =
         toProblemDetails(
             errorKey, status, optimistic ? OPTIMISTIC_LOCK_DETAIL : CONCURRENCY_FAILURE_DETAIL);

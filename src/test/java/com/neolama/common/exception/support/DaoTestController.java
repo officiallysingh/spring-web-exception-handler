@@ -9,8 +9,10 @@ import org.springframework.dao.ConcurrencyFailureException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /** Throws data-access exceptions as Spring would translate them from the drivers. */
@@ -96,6 +98,20 @@ class DaoTestController {
   @GetMapping("/concurrency-failure")
   String concurrencyFailure() {
     throw new ConcurrencyFailureException("concurrent update");
+  }
+
+  @GetMapping("/annotated-violation")
+  String annotatedViolation() {
+    throw new RejectedDataException();
+  }
+
+  /** An application subclass that carries its own status. */
+  @ResponseStatus(HttpStatus.UNPROCESSABLE_CONTENT)
+  static final class RejectedDataException extends DataIntegrityViolationException {
+
+    RejectedDataException() {
+      super("rejected", new SQLException("check constraint failed"));
+    }
   }
 
   /** A subclass of {@link OptimisticLockingFailureException}, as JPA throws. */

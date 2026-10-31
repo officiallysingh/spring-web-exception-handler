@@ -76,8 +76,12 @@ public interface DataIntegrityViolationAdvice extends Exceptional {
         ProblemUtils.errorKey(duplicate ? DuplicateKeyException.class : exception.getClass());
     final String errorKey =
         constraintName == null ? exceptionKey : exceptionKey + DOT + constraintName;
+    final HttpStatus defaultStatus =
+        duplicate ? HttpStatus.CONFLICT : HttpStatus.INTERNAL_SERVER_ERROR;
     final HttpStatus status =
-        resolveStatus(errorKey, duplicate ? HttpStatus.CONFLICT : HttpStatus.INTERNAL_SERVER_ERROR);
+        constraintName == null
+            ? resolveStatus(exception, defaultStatus, errorKey)
+            : resolveStatus(exception, defaultStatus, errorKey, exceptionKey);
 
     final ProblemDetails problemDetails =
         toProblemDetails(errorKey, status, duplicate ? DUPLICATE_KEY_DETAIL : DEFAULT_DETAIL);

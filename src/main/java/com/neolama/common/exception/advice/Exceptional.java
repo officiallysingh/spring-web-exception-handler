@@ -58,23 +58,36 @@ public interface Exceptional {
   }
 
   /**
-   * Resolves the HTTP status for the given throwable.
+   * Resolves the HTTP status for the given throwable. Every advice uses this one rule.
    *
-   * <p>Looks up a configured status for the throwable's simple class name, then falls back to the
-   * {@code @ResponseStatus} of the throwable, then to the status of an {@link ErrorResponse}, and
-   * finally {@code defaultStatus}.
+   * <p>In order: a configured {@code status.{errorKey}} for the first of {@code errorKeys} that has
+   * one, then {@code @ResponseStatus} on the throwable or one of its causes, then the status of a
+   * Spring {@link ErrorResponse}, and finally {@code defaultStatus}.
+   *
+   * <p>Without {@code errorKeys}, the key is the throwable's {@linkplain
+   * ProblemUtils#errorKey(Class) simple name}. Advices whose error key extends the exception name,
+   * such as {@code MissingServletRequestParameterException.page}, pass that key first and the
+   * exception name after it, so that a status can be set for one parameter or for all of them.
    *
    * @param throwable the throwable whose status is resolved
-   * @param defaultStatus the status used when no configured status applies
+   * @param defaultStatus the status used when nothing else applies
+   * @param errorKeys the error keys to look up, most specific first, or none or {@code null} for
+   *     the simple name
    * @return the resolved HTTP status
    */
-  default HttpStatus resolveStatus(final Throwable throwable, final HttpStatus defaultStatus) {
-    final HttpStatus defStatus =
-        ProblemUtils.resolveStatus(throwable)
-            .or(() -> errorResponseStatus(throwable))
-            .orElse(defaultStatus);
-    final String errorKey = ProblemUtils.errorKey(throwable.getClass());
-    return ProblemUtils.configuredStatus(errorKey).orElse(defStatus);
+  default HttpStatus resolveStatus(
+      final Throwable throwable,
+      final HttpStatus defaultStatus,
+      final String @Nullable ... errorKeys) {
+    // A plain check rather than ArrayUtils.isEmpty, which NullAway cannot see through.
+    final String[] keys =
+        errorKeys == null || errorKeys.length == 0
+            ? new String[] {ProblemUtils.errorKey(throwable.getClass())}
+            : errorKeys;
+    return ProblemUtils.configuredStatus(keys)
+        .or(() -> ProblemUtils.resolveStatus(throwable))
+        .or(() -> errorResponseStatus(throwable))
+        .orElse(defaultStatus);
   }
 
   /**
@@ -89,32 +102,6 @@ public interface Exceptional {
     return throwable instanceof ErrorResponse errorResponse
         ? Optional.ofNullable(HttpStatus.resolve(errorResponse.getStatusCode().value()))
         : Optional.empty();
-  }
-
-  /**
-   * Resolves the HTTP status configured for the given error key.
-   *
-   * @param errorKey the message-source key suffix used to look up a status code
-   * @param defaultStatus the status used when no status is configured or the lookup fails
-   * @return the resolved HTTP status
-   */
-  default HttpStatus resolveStatus(final String errorKey, final HttpStatus defaultStatus) {
-    return ProblemUtils.configuredStatus(errorKey).orElse(defaultStatus);
-  }
-
-  /**
-   * Resolves the HTTP status configured for the first of the given error keys that has one.
-   *
-   * <p>Advices whose error key extends the exception name, such as {@code
-   * MissingServletRequestParameterException.page}, pass that key first and the exception name after
-   * it, so that a status can be set for one parameter or for all of them.
-   *
-   * @param errorKeys the error keys, most specific first
-   * @param defaultStatus the status used when no key has a configured status
-   * @return the resolved HTTP status
-   */
-  default HttpStatus resolveStatus(final String[] errorKeys, final HttpStatus defaultStatus) {
-    return ProblemUtils.configuredStatus(errorKeys).orElse(defaultStatus);
   }
 
   /**

@@ -33,7 +33,7 @@ public interface DataBufferLimitExceptionAdvice extends Exceptional {
     final long bytes = ProblemUtils.firstNumber(exception.getMessage(), -1);
     final String maxBufferSize = bytes != -1 ? ProblemUtils.formatSize(bytes) : "UNKNOWN";
     final String errorKey = ProblemUtils.errorKey(exception.getClass());
-    final HttpStatus status = resolveStatus(errorKey, HttpStatus.INTERNAL_SERVER_ERROR);
+    final HttpStatus status = resolveStatus(exception, HttpStatus.INTERNAL_SERVER_ERROR);
     final ProblemDetails problemDetails =
         toProblemDetails(errorKey, status, DATA_BUFFER_LIMIT_DETAIL, maxBufferSize);
     return toResponse(problemDetails, request, exception);

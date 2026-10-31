@@ -70,6 +70,16 @@ class DaoAdviceTest {
         GENERIC);
   }
 
+  /** {@code @ResponseStatus} on an application subclass wins over the advice default. */
+  @Test
+  void responseStatusOnSubclassIsHonoured() {
+    assertProblem(
+        this.mvc.get().uri("/dao/annotated-violation").exchange(),
+        422,
+        "rejected-data-exception",
+        GENERIC);
+  }
+
   @Test
   void causeWithNullMessageDoesNotFail() {
     assertProblem(

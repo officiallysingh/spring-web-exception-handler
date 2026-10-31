@@ -46,7 +46,7 @@ public interface MessageNotReadableAdvice extends Exceptional {
     } else {
       final String exceptionKey = ProblemUtils.errorKey(exception.getClass());
       logExceptionKey(exceptionKey);
-      final HttpStatus status = resolveStatus(exceptionKey, HttpStatus.BAD_REQUEST);
+      final HttpStatus status = resolveStatus(exception, HttpStatus.BAD_REQUEST);
       final ProblemDetails problemDetails =
           toProblemDetails(exception, status, MALFORMED_BODY_DETAIL);
       return toResponse(problemDetails, request, exception);
@@ -68,7 +68,8 @@ public interface MessageNotReadableAdvice extends Exceptional {
         deriveInvalidFormatExceptionErrorKeys(invalidFormatException);
     logErrorKeys(errorPropertyKeys);
     // the candidate keys end with the exception name, so its status entry applies to every property
-    final HttpStatus status = resolveStatus(errorPropertyKeys, HttpStatus.BAD_REQUEST);
+    final HttpStatus status =
+        resolveStatus(invalidFormatException, HttpStatus.BAD_REQUEST, errorPropertyKeys);
 
     final String[] codeCodes =
         Arrays.stream(errorPropertyKeys)

@@ -36,7 +36,7 @@ public interface HttpMediaTypeNotAcceptableAdvice extends Exceptional {
       setResponseHeaders(request, headers);
     }
     final String errorKey = ProblemUtils.errorKey(exception.getClass());
-    final HttpStatus status = resolveStatus(errorKey, HttpStatus.NOT_ACCEPTABLE);
+    final HttpStatus status = resolveStatus(exception, HttpStatus.NOT_ACCEPTABLE);
     final ProblemDetails problemDetails =
         toProblemDetails(
             errorKey,

@@ -51,7 +51,7 @@ public interface HandlerMethodValidationAdvice extends Exceptional {
   default ProblemDetails handleHandlerMethodValidation(
       final HandlerMethodValidationException exception, final NativeWebRequest request) {
     final String errorKey = ProblemUtils.errorKey(exception.getClass());
-    final HttpStatus status = resolveStatus(errorKey, HttpStatus.BAD_REQUEST);
+    final HttpStatus status = resolveStatus(exception, HttpStatus.BAD_REQUEST);
     final List<Problem> violations =
         exception.getParameterValidationResults().stream()
             .flatMap(

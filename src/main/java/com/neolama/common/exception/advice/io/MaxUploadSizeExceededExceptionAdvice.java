@@ -38,7 +38,7 @@ public interface MaxUploadSizeExceededExceptionAdvice extends Exceptional {
             : ProblemUtils.lastNumber(exception.getMostSpecificCause().getMessage(), -1);
     final String maxFileSizeAllowed = bytes != -1 ? ProblemUtils.formatSize(bytes) : "UNKNOWN";
 
-    final HttpStatus status = resolveStatus(errorKey, HttpStatus.CONTENT_TOO_LARGE);
+    final HttpStatus status = resolveStatus(exception, HttpStatus.CONTENT_TOO_LARGE);
     final ProblemDetails problemDetails =
         toProblemDetails(errorKey, status, UPLOAD_SIZE_EXCEEDED_DETAIL, maxFileSizeAllowed);
     return toResponse(problemDetails, request, exception);

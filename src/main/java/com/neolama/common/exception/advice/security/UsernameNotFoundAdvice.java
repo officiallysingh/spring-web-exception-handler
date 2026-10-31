@@ -32,7 +32,7 @@ public interface UsernameNotFoundAdvice extends Exceptional {
   default ProblemDetails handleUsernameNotFoundException(
       final UsernameNotFoundException exception, final NativeWebRequest request) {
     final String errorKey = ProblemUtils.errorKey(BadCredentialsException.class);
-    final HttpStatus status = resolveStatus(errorKey, HttpStatus.UNAUTHORIZED);
+    final HttpStatus status = resolveStatus(exception, HttpStatus.UNAUTHORIZED, errorKey);
     final ProblemDetails problemDetails =
         toProblemDetails(errorKey, status, BAD_CREDENTIALS_DETAIL);
     return toResponse(problemDetails, request, exception);
