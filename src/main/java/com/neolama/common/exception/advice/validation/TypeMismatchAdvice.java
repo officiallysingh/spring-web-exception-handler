@@ -4,7 +4,7 @@ import static com.neolama.common.exception.core.ProblemConstant.DOT;
 
 import com.neolama.common.exception.advice.Exceptional;
 import com.neolama.common.exception.core.ProblemDetails;
-import org.apache.commons.lang3.ClassUtils;
+import com.neolama.common.exception.core.ProblemUtils;
 import org.springframework.beans.ConversionNotSupportedException;
 import org.springframework.beans.TypeMismatchException;
 import org.springframework.http.HttpStatus;
@@ -36,7 +36,7 @@ public interface TypeMismatchAdvice extends Exceptional {
     if (exception instanceof ConversionNotSupportedException) {
       return toResponse(toProblemDetails(exception), request, exception);
     }
-    final String exceptionKey = ClassUtils.getShortClassName(exception.getClass());
+    final String exceptionKey = ProblemUtils.errorKey(exception.getClass());
     logExceptionKey(exceptionKey);
     final String propertyName = exception.getPropertyName();
     final String errorKey = exceptionKey + DOT + exception.getErrorCode() + DOT + propertyName;

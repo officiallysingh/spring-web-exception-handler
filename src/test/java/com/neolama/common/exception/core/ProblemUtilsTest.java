@@ -62,6 +62,25 @@ class ProblemUtilsTest {
   }
 
   @Nested
+  class ErrorKeyOfClass {
+
+    static class NestedException extends RuntimeException {}
+
+    @Test
+    void usesTheSimpleNameWithoutEnclosingClass() {
+      assertThat(ProblemUtils.errorKey(IllegalStateException.class))
+          .isEqualTo("IllegalStateException");
+      assertThat(ProblemUtils.errorKey(NestedException.class)).isEqualTo("NestedException");
+    }
+
+    @Test
+    void anonymousClassUsesNearestNamedSuperclass() {
+      final RuntimeException anonymous = new IllegalArgumentException() {};
+      assertThat(ProblemUtils.errorKey(anonymous.getClass())).isEqualTo("IllegalArgumentException");
+    }
+  }
+
+  @Nested
   class ErrorKeyFormat {
 
     @Test

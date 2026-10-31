@@ -4,8 +4,8 @@ import static com.neolama.common.exception.core.ProblemConstant.VALIDATION_FAILE
 
 import com.neolama.common.exception.core.Problem;
 import com.neolama.common.exception.core.ProblemDetails;
+import com.neolama.common.exception.core.ProblemUtils;
 import java.util.List;
-import org.apache.commons.lang3.ClassUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -30,7 +30,7 @@ public interface MethodArgumentNotValidAdvice extends BaseBindingResultHandlingA
   @ExceptionHandler
   default ProblemDetails handleMethodArgumentNotValid(
       final MethodArgumentNotValidException exception, final NativeWebRequest request) {
-    final String errorKey = ClassUtils.getShortClassName(exception.getClass());
+    final String errorKey = ProblemUtils.errorKey(exception.getClass());
     final HttpStatus status = resolveStatus(exception, HttpStatus.BAD_REQUEST);
     final List<Problem> violations =
         handleBindingResult(exception.getBindingResult(), exception, status);

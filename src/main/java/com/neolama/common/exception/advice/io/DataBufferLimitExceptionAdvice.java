@@ -5,7 +5,6 @@ import static com.neolama.common.exception.core.ProblemConstant.DATA_BUFFER_LIMI
 import com.neolama.common.exception.advice.Exceptional;
 import com.neolama.common.exception.core.ProblemDetails;
 import com.neolama.common.exception.core.ProblemUtils;
-import org.apache.commons.lang3.ClassUtils;
 import org.springframework.core.io.buffer.DataBufferLimitException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -33,7 +32,7 @@ public interface DataBufferLimitExceptionAdvice extends Exceptional {
       final DataBufferLimitException exception, final NativeWebRequest request) {
     final long bytes = ProblemUtils.firstNumber(exception.getMessage(), -1);
     final String maxBufferSize = bytes != -1 ? ProblemUtils.formatSize(bytes) : "UNKNOWN";
-    final String errorKey = ClassUtils.getShortClassName(exception.getClass());
+    final String errorKey = ProblemUtils.errorKey(exception.getClass());
     final HttpStatus status = resolveStatus(errorKey, HttpStatus.INTERNAL_SERVER_ERROR);
     final ProblemDetails problemDetails =
         toProblemDetails(errorKey, status, DATA_BUFFER_LIMIT_DETAIL, maxBufferSize);

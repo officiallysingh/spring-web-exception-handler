@@ -2,10 +2,10 @@ package com.neolama.common.exception.advice.http;
 
 import com.neolama.common.exception.advice.Exceptional;
 import com.neolama.common.exception.core.ProblemDetails;
+import com.neolama.common.exception.core.ProblemUtils;
 import java.util.List;
 import java.util.Objects;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.ClassUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -39,7 +39,7 @@ public interface HttpMediaTypeNotSupportedExceptionAdvice extends Exceptional {
       headers.setAccept(supportedMediaTypes);
       setResponseHeaders(request, headers);
     }
-    final String errorKey = ClassUtils.getShortClassName(exception.getClass());
+    final String errorKey = ProblemUtils.errorKey(exception.getClass());
     final HttpStatus status = resolveStatus(errorKey, HttpStatus.UNSUPPORTED_MEDIA_TYPE);
     final ProblemDetails problemDetails =
         toProblemDetails(

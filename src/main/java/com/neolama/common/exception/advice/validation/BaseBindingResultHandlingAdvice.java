@@ -6,10 +6,10 @@ import com.neolama.common.exception.advice.Exceptional;
 import com.neolama.common.exception.autoconfigure.ProblemMessageProvider;
 import com.neolama.common.exception.core.Problem;
 import com.neolama.common.exception.core.ProblemMessageSourceResolver;
+import com.neolama.common.exception.core.ProblemUtils;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
-import org.apache.commons.lang3.ClassUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
@@ -51,7 +51,7 @@ public interface BaseBindingResultHandlingAdvice extends Exceptional {
    */
   default Problem handleFieldError(
       final FieldError fieldError, final Throwable exception, final HttpStatus status) {
-    final String prefix = ClassUtils.getShortClassName(exception.getClass());
+    final String prefix = ProblemUtils.errorKey(exception.getClass());
 
     final String[] fieldErrorCodes = fieldError.getCodes();
     final String[] propertyErrorKeys =
@@ -85,7 +85,7 @@ public interface BaseBindingResultHandlingAdvice extends Exceptional {
    */
   default Problem handleObjectError(
       final ObjectError objectError, final Throwable exception, final HttpStatus status) {
-    final String prefix = ClassUtils.getShortClassName(exception.getClass());
+    final String prefix = ProblemUtils.errorKey(exception.getClass());
 
     final String[] objectErrorCodes = objectError.getCodes();
     final String[] propertyErrorKeys =

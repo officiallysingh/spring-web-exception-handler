@@ -44,7 +44,7 @@ public interface MessageNotReadableAdvice extends Exceptional {
     if (exception.getCause() instanceof InvalidFormatException invalidFormatException) {
       return handleInvalidFormatException(invalidFormatException, request);
     } else {
-      final String exceptionKey = ClassUtils.getShortClassName(exception.getClass());
+      final String exceptionKey = ProblemUtils.errorKey(exception.getClass());
       logExceptionKey(exceptionKey);
       final HttpStatus status = resolveStatus(exceptionKey, HttpStatus.BAD_REQUEST);
       final ProblemDetails problemDetails =
@@ -62,7 +62,7 @@ public interface MessageNotReadableAdvice extends Exceptional {
    */
   default ProblemDetails handleInvalidFormatException(
       final InvalidFormatException invalidFormatException, final NativeWebRequest request) {
-    final String exceptionKey = ClassUtils.getShortClassName(invalidFormatException.getClass());
+    final String exceptionKey = ProblemUtils.errorKey(invalidFormatException.getClass());
     logExceptionKey(exceptionKey);
     final String[] errorPropertyKeys =
         deriveInvalidFormatExceptionErrorKeys(invalidFormatException);
@@ -111,7 +111,7 @@ public interface MessageNotReadableAdvice extends Exceptional {
    */
   default String[] deriveInvalidFormatExceptionErrorKeys(
       final InvalidFormatException invalidFormatException) {
-    final String errorKey = ClassUtils.getShortClassName(invalidFormatException.getClass());
+    final String errorKey = ProblemUtils.errorKey(invalidFormatException.getClass());
     final List<JacksonException.Reference> path = invalidFormatException.getPath();
     final List<JacksonException.Reference> properties =
         path.stream().filter(reference -> reference.getPropertyName() != null).toList();

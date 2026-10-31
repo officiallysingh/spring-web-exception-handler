@@ -4,7 +4,7 @@ import static com.neolama.common.exception.core.ProblemConstant.BAD_CREDENTIALS_
 
 import com.neolama.common.exception.advice.Exceptional;
 import com.neolama.common.exception.core.ProblemDetails;
-import org.apache.commons.lang3.ClassUtils;
+import com.neolama.common.exception.core.ProblemUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -31,7 +31,7 @@ public interface UsernameNotFoundAdvice extends Exceptional {
   @ExceptionHandler
   default ProblemDetails handleUsernameNotFoundException(
       final UsernameNotFoundException exception, final NativeWebRequest request) {
-    final String errorKey = ClassUtils.getShortClassName(BadCredentialsException.class);
+    final String errorKey = ProblemUtils.errorKey(BadCredentialsException.class);
     final HttpStatus status = resolveStatus(errorKey, HttpStatus.UNAUTHORIZED);
     final ProblemDetails problemDetails =
         toProblemDetails(errorKey, status, BAD_CREDENTIALS_DETAIL);

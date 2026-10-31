@@ -5,7 +5,7 @@ import static com.neolama.common.exception.core.ProblemConstant.OPTIMISTIC_LOCK_
 
 import com.neolama.common.exception.advice.Exceptional;
 import com.neolama.common.exception.core.ProblemDetails;
-import org.apache.commons.lang3.ClassUtils;
+import com.neolama.common.exception.core.ProblemUtils;
 import org.springframework.dao.ConcurrencyFailureException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.dao.PessimisticLockingFailureException;
@@ -54,7 +54,7 @@ public interface ConcurrencyFailureAdvice extends Exceptional {
     } else {
       keyClass = ConcurrencyFailureException.class;
     }
-    final String errorKey = ClassUtils.getShortClassName(keyClass);
+    final String errorKey = ProblemUtils.errorKey(keyClass);
     final HttpStatus status =
         resolveStatus(errorKey, optimistic ? HttpStatus.CONFLICT : HttpStatus.SERVICE_UNAVAILABLE);
     final ProblemDetails problemDetails =

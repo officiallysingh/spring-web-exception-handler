@@ -4,8 +4,8 @@ import static com.neolama.common.exception.core.ProblemConstant.VALIDATION_FAILE
 
 import com.neolama.common.exception.core.Problem;
 import com.neolama.common.exception.core.ProblemDetails;
+import com.neolama.common.exception.core.ProblemUtils;
 import java.util.List;
-import org.apache.commons.lang3.ClassUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -29,7 +29,7 @@ public interface BindAdvice extends BaseBindingResultHandlingAdvice {
   @ExceptionHandler
   default ProblemDetails handleBindException(
       final BindException exception, final NativeWebRequest request) {
-    final String errorKey = ClassUtils.getShortClassName(exception.getClass());
+    final String errorKey = ProblemUtils.errorKey(exception.getClass());
     final HttpStatus status = resolveStatus(errorKey, HttpStatus.BAD_REQUEST);
     final List<Problem> violations =
         handleBindingResult(exception.getBindingResult(), exception, status);

@@ -67,7 +67,7 @@ your application decides which ones, and which versions, it uses.
 
 ## Installation
 
-> **Current version: 1.0.0-rc3**, available from
+> **Current version: 1.0.0-rc4**, available from
 > [Maven Central](https://central.sonatype.com/artifact/com.neolama/spring-web-exception-handler).
 
 Maven
@@ -76,14 +76,14 @@ Maven
 <dependency>
     <groupId>com.neolama</groupId>
     <artifactId>spring-web-exception-handler</artifactId>
-    <version>1.0.0-rc3</version>
+    <version>1.0.0-rc4</version>
 </dependency>
 ```
 
 Gradle
 
 ```groovy
-implementation 'com.neolama:spring-web-exception-handler:1.0.0-rc3'
+implementation 'com.neolama:spring-web-exception-handler:1.0.0-rc4'
 ```
 
 Spring Boot auto-configuration registers everything. There is no annotation to add.
@@ -186,7 +186,7 @@ When an error key extends the exception name, such as `MissingServletRequestPara
 
 | Situation | Error key |
 | --- | --- |
-| Any exception without a more specific key | Simple class name: `IllegalStateException`, `OrderLockedException` |
+| Any exception without a more specific key | Simple class name, without any enclosing class: `IllegalStateException`, `OrderLockedException` (also when declared inside `OrderService`). An anonymous class uses its named superclass |
 | A problem you throw | The key you pass to `Problems.of("...")`, or `ErrorType.getErrorKey()` |
 | Missing query parameter `page` | `MissingServletRequestParameterException.page` |
 | Missing header `X-Tenant` on `OrderController.create` | `MissingRequestHeaderException.OrderController.create.X-Tenant` |
@@ -360,9 +360,10 @@ created. Reuse the `ErrorType` instead.
 
 ### Your own exception classes
 
-Exceptions without a dedicated advice are handled too. Their error key is the simple class name, and
-their status comes from `status.{SimpleName}`, then `@ResponseStatus` on the class or its cause, then
-`500`:
+Exceptions without a dedicated advice are handled too. Their error key is the simple class name; an
+exception declared inside another class gets the same key as a top-level one: `OrderLockedException`,
+not `OrderService.OrderLockedException`. Their status comes from `status.{SimpleName}`, then
+`@ResponseStatus` on the class or its cause, then `500`:
 
 ```java
 @ResponseStatus(HttpStatus.CONFLICT)
@@ -708,7 +709,7 @@ no message bundle is loaded.
 
 ## Example responses
 
-Real responses from a demo application with this message bundle:
+Real responses from a demo application with this message bundle, captured with version 1.0.0-rc4:
 
 ```properties
 message.MethodArgumentNotValidException.Size.employee.name=Name must be {4} to {3} characters long
@@ -734,7 +735,7 @@ detail.invalid.order=Order {0} has no items
   "code": "method-argument-not-valid-exception",
   "title": "Bad Request",
   "detail": "Request validation failed",
-  "timestamp": "2026-10-25T14:10:42.619831Z",
+  "timestamp": "2026-10-31T13:00:14.827565Z",
   "violations": [
     {
       "code": "400",
@@ -743,13 +744,13 @@ detail.invalid.order=Order {0} has no items
     },
     {
       "code": "400",
-      "message": "size must be between 2 and 5",
-      "details": "Invalid value for property designation"
+      "message": "Name must be 3 to 10 characters long",
+      "details": "Invalid value for property name"
     },
     {
       "code": "400",
-      "message": "Name must be 3 to 10 characters long",
-      "details": "Invalid value for property name"
+      "message": "size must be between 2 and 5",
+      "details": "Invalid value for property designation"
     }
   ]
 }
@@ -768,7 +769,7 @@ detail.invalid.order=Order {0} has no items
   "code": "handler-method-validation-exception",
   "title": "Bad Request",
   "detail": "Request validation failed",
-  "timestamp": "2026-10-25T14:13:45.239681Z",
+  "timestamp": "2026-10-31T13:00:14.85154Z",
   "violations": [
     {
       "code": "400",
@@ -792,7 +793,7 @@ detail.invalid.order=Order {0} has no items
   "code": "bad-request",
   "title": "Bad Request",
   "detail": "Required request parameter 'page' for method parameter type int is not present",
-  "timestamp": "2026-10-25T14:10:42.739644Z"
+  "timestamp": "2026-10-31T13:00:14.853413Z"
 }
 ```
 
@@ -809,7 +810,7 @@ detail.invalid.order=Order {0} has no items
   "code": "bad-request",
   "title": "Bad Request",
   "detail": "Invalid value for parameter joinedAfter",
-  "timestamp": "2026-10-25T14:10:42.667781Z"
+  "timestamp": "2026-10-31T13:00:14.856094Z"
 }
 ```
 
@@ -826,7 +827,7 @@ detail.invalid.order=Order {0} has no items
   "code": "bad-request",
   "title": "Bad Request",
   "detail": "Date of birth must be a date like 1990-12-31",
-  "timestamp": "2026-10-25T14:10:42.674176Z"
+  "timestamp": "2026-10-31T13:00:14.859062Z"
 }
 ```
 
@@ -843,7 +844,7 @@ detail.invalid.order=Order {0} has no items
   "code": "http-message-not-readable-exception",
   "title": "Bad Request",
   "detail": "Malformed request body",
-  "timestamp": "2026-10-25T14:10:42.679337Z"
+  "timestamp": "2026-10-31T13:00:14.86044Z"
 }
 ```
 
@@ -860,7 +861,7 @@ detail.invalid.order=Order {0} has no items
   "code": "employee-not-found",
   "title": "Not Found",
   "detail": "Employee 42 not found",
-  "timestamp": "2026-10-25T14:10:42.684674Z"
+  "timestamp": "2026-10-31T13:00:14.8624Z"
 }
 ```
 
@@ -877,7 +878,7 @@ detail.invalid.order=Order {0} has no items
   "code": "bad-request",
   "title": "Bad Request",
   "detail": "Order 7 has no items",
-  "timestamp": "2026-10-25T14:10:42.711462Z",
+  "timestamp": "2026-10-31T13:00:14.86569Z",
   "orderId": 7
 }
 ```
@@ -895,7 +896,7 @@ The `Problems.of(...)` example from [Several errors in one response](#several-er
   "code": "422",
   "title": "Unprocessable Content",
   "detail": "Unprocessable Content",
-  "timestamp": "2026-10-25T14:10:42.715535Z",
+  "timestamp": "2026-10-31T13:00:14.866686Z",
   "errors": [
     {
       "code": "row-3",
@@ -924,7 +925,7 @@ The `Problems.of(...)` example from [Several errors in one response](#several-er
   "code": "employee-name-taken",
   "title": "Conflict",
   "detail": "An employee with this name already exists",
-  "timestamp": "2026-10-25T14:10:42.692239Z"
+  "timestamp": "2026-10-31T13:00:14.868799Z"
 }
 ```
 
@@ -941,7 +942,7 @@ The `Problems.of(...)` example from [Several errors in one response](#several-er
   "code": "conflict",
   "title": "Conflict",
   "detail": "A state with this name already exists",
-  "timestamp": "2026-10-25T14:10:42.695805Z"
+  "timestamp": "2026-10-31T13:00:14.869744Z"
 }
 ```
 
@@ -956,7 +957,7 @@ The `Problems.of(...)` example from [Several errors in one response](#several-er
   "code": "max-upload-size-exceeded-exception",
   "title": "Content Too Large",
   "detail": "Upload file size exceeded the maximum allowed limit: 10 MB",
-  "timestamp": "2026-10-25T14:10:42.700716Z"
+  "timestamp": "2026-10-31T13:00:14.87083Z"
 }
 ```
 
@@ -974,7 +975,7 @@ returned:
   "code": "illegal-state-exception",
   "title": "Internal Server Error",
   "detail": "An unexpected error occurred",
-  "timestamp": "2026-10-25T14:10:42.705216Z"
+  "timestamp": "2026-10-31T13:00:14.871738Z"
 }
 ```
 
@@ -989,7 +990,7 @@ returned:
   "code": "no-resource-found-exception",
   "title": "Not Found",
   "detail": "No resource found for GET /api/unknown",
-  "timestamp": "2026-10-25T14:10:42.732491Z"
+  "timestamp": "2026-10-31T13:00:14.878125Z"
 }
 ```
 
@@ -1006,7 +1007,7 @@ returned:
   "code": "http-request-method-not-supported-exception",
   "title": "Method Not Allowed",
   "detail": "Requested Method: DELETE not allowed, allowed methods are: GET,POST",
-  "timestamp": "2026-10-25T14:10:42.724262Z"
+  "timestamp": "2026-10-31T13:00:14.879482Z"
 }
 ```
 
@@ -1023,7 +1024,7 @@ returned:
   "code": "http-media-type-not-supported-exception",
   "title": "Unsupported Media Type",
   "detail": "Media Type: application/xml Not Supported, Supported Media Types are: application/json",
-  "timestamp": "2026-10-25T14:10:42.720736Z"
+  "timestamp": "2026-10-31T13:00:14.880668Z"
 }
 ```
 
@@ -1040,7 +1041,7 @@ returned:
   "code": "http-media-type-not-acceptable-exception",
   "title": "Not Acceptable",
   "detail": "Media Type Not Acceptable, except: application/json",
-  "timestamp": "2026-10-25T14:10:42.727071Z"
+  "timestamp": "2026-10-31T13:00:14.881755Z"
 }
 ```
 
@@ -1057,7 +1058,7 @@ returned:
   "code": "insufficient-authentication-exception",
   "title": "Unauthorized",
   "detail": "Full authentication is required to access this resource",
-  "timestamp": "2026-10-25T14:10:42.7363Z"
+  "timestamp": "2026-10-31T13:00:14.883791Z"
 }
 ```
 

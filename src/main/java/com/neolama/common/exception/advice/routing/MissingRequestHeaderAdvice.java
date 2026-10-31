@@ -4,7 +4,7 @@ import static com.neolama.common.exception.core.ProblemConstant.*;
 
 import com.neolama.common.exception.advice.Exceptional;
 import com.neolama.common.exception.core.ProblemDetails;
-import org.apache.commons.lang3.ClassUtils;
+import com.neolama.common.exception.core.ProblemUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -29,7 +29,7 @@ public interface MissingRequestHeaderAdvice extends Exceptional {
   @ExceptionHandler
   default ProblemDetails handleMissingRequestHeader(
       final MissingRequestHeaderException exception, final NativeWebRequest request) {
-    final String exceptionKey = ClassUtils.getShortClassName(exception.getClass());
+    final String exceptionKey = ProblemUtils.errorKey(exception.getClass());
     logExceptionKey(exceptionKey);
     final String parameterKey =
         exception.getParameter().getContainingClass().getSimpleName()

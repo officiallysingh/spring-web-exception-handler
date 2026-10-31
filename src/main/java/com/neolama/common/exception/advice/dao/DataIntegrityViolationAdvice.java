@@ -6,7 +6,7 @@ import static com.neolama.common.exception.core.ProblemConstant.DUPLICATE_KEY_DE
 
 import com.neolama.common.exception.advice.Exceptional;
 import com.neolama.common.exception.core.ProblemDetails;
-import org.apache.commons.lang3.ClassUtils;
+import com.neolama.common.exception.core.ProblemUtils;
 import org.jspecify.annotations.Nullable;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
@@ -73,8 +73,7 @@ public interface DataIntegrityViolationAdvice extends Exceptional {
     final String constraintName = resolveConstraintName(cause);
 
     final String exceptionKey =
-        ClassUtils.getShortClassName(
-            duplicate ? DuplicateKeyException.class : exception.getClass());
+        ProblemUtils.errorKey(duplicate ? DuplicateKeyException.class : exception.getClass());
     final String errorKey =
         constraintName == null ? exceptionKey : exceptionKey + DOT + constraintName;
     final HttpStatus status =

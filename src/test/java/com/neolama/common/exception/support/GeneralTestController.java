@@ -5,6 +5,7 @@ import com.neolama.common.exception.core.Problems;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 
@@ -83,4 +84,24 @@ class GeneralTestController {
   String localized() {
     throw Problems.of("localized.problem").throwAble(HttpStatus.BAD_REQUEST);
   }
+
+  @GetMapping("/nested")
+  String nested() {
+    throw new OrderLockedException();
+  }
+
+  @GetMapping("/anonymous")
+  String anonymous() {
+    throw new IllegalStateException("anonymous") {};
+  }
+
+  @GetMapping("/local")
+  String local() {
+    class LocalFailureException extends RuntimeException {}
+    throw new LocalFailureException();
+  }
+
+  /** An exception declared inside another class. */
+  @ResponseStatus(HttpStatus.CONFLICT)
+  static class OrderLockedException extends RuntimeException {}
 }

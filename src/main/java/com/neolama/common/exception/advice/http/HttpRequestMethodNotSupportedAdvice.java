@@ -2,10 +2,10 @@ package com.neolama.common.exception.advice.http;
 
 import com.neolama.common.exception.advice.Exceptional;
 import com.neolama.common.exception.core.ProblemDetails;
+import com.neolama.common.exception.core.ProblemUtils;
 import java.util.Set;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.lang3.ClassUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -40,7 +40,7 @@ public interface HttpRequestMethodNotSupportedAdvice extends Exceptional {
       headers.setAllow(supportedHttpMethods);
       setResponseHeaders(request, headers);
     }
-    final String errorKey = ClassUtils.getShortClassName(exception.getClass());
+    final String errorKey = ProblemUtils.errorKey(exception.getClass());
     final HttpStatus status = resolveStatus(errorKey, HttpStatus.METHOD_NOT_ALLOWED);
     final ProblemDetails problemDetails =
         toProblemDetails(

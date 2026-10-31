@@ -43,9 +43,6 @@ public class ProblemConstant {
   /** Message-source prefix for a violation message. */
   public static final String MESSAGE_CODE_PREFIX = "message.";
 
-  /** Fallback problem code when none is configured. */
-  public static final String DEFAULT_CODE = "500";
-
   /** Fallback problem title when none is configured. */
   public static final String DEFAULT_TITLE = "Internal Server Error";
 

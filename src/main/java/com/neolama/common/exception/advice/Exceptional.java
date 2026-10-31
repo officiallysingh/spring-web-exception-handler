@@ -12,7 +12,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Objects;
 import java.util.Optional;
-import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -74,7 +73,7 @@ public interface Exceptional {
         ProblemUtils.resolveStatus(throwable)
             .or(() -> errorResponseStatus(throwable))
             .orElse(defaultStatus);
-    final String errorKey = ClassUtils.getShortClassName(throwable.getClass());
+    final String errorKey = ProblemUtils.errorKey(throwable.getClass());
     return ProblemUtils.configuredStatus(errorKey).orElse(defStatus);
   }
 
@@ -156,7 +155,7 @@ public interface Exceptional {
    */
   default ProblemDetails toProblemDetails(
       final Throwable throwable, final HttpStatus status, final @Nullable String defaultDetail) {
-    final String errorKey = ClassUtils.getShortClassName(throwable.getClass());
+    final String errorKey = ProblemUtils.errorKey(throwable.getClass());
     return toProblemDetails(errorKey, status, defaultDetail);
   }
 
@@ -336,7 +335,7 @@ public interface Exceptional {
    */
   default void log(final Throwable throwable, final ProblemDetails problemDetails) {
     final int status = problemDetails.getStatus();
-    final String exceptionName = ClassUtils.getShortClassName(throwable.getClass());
+    final String exceptionName = ProblemUtils.errorKey(throwable.getClass());
     if (HttpStatusCode.valueOf(status).is5xxServerError()) {
       logger.error(
           PROBLEM_LOG_FORMAT,

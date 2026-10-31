@@ -180,6 +180,25 @@ public class ProblemUtils {
   }
 
   /**
+   * Returns the error key for an exception class: its simple name, without any enclosing class.
+   *
+   * <p>A class declared inside another, such as {@code OrderService.OrderLockedException}, gives
+   * {@code OrderLockedException}, as it would as a top-level class. An anonymous class has no name,
+   * so the nearest named superclass is used: {@code new IllegalStateException() {}} gives {@code
+   * IllegalStateException}.
+   *
+   * @param type the exception class
+   * @return the error key
+   */
+  public static String errorKey(final Class<?> type) {
+    Class<?> named = type;
+    while (named.isAnonymousClass() && named.getSuperclass() != null) {
+      named = named.getSuperclass();
+    }
+    return named.getSimpleName();
+  }
+
+  /**
    * Converts an error key into a lower-case, hyphen-separated problem code.
    *
    * <p>Every upper-case letter starts a new segment, and every run of other characters than letters

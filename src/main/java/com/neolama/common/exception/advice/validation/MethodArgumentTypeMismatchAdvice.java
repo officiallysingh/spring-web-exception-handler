@@ -4,7 +4,7 @@ import static com.neolama.common.exception.core.ProblemConstant.DOT;
 
 import com.neolama.common.exception.advice.Exceptional;
 import com.neolama.common.exception.core.ProblemDetails;
-import org.apache.commons.lang3.ClassUtils;
+import com.neolama.common.exception.core.ProblemUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.NativeWebRequest;
@@ -32,7 +32,7 @@ public interface MethodArgumentTypeMismatchAdvice extends Exceptional {
   default ProblemDetails handleMethodArgumentTypeMismatch(
       final MethodArgumentTypeMismatchException exception, final NativeWebRequest request) {
     final String parameterName = exception.getName();
-    final String exceptionKey = ClassUtils.getShortClassName(exception.getClass());
+    final String exceptionKey = ProblemUtils.errorKey(exception.getClass());
     logExceptionKey(exceptionKey);
     final String parameterPath =
         exception.getParameter().getContainingClass().getSimpleName()

@@ -7,10 +7,10 @@ import com.neolama.common.exception.autoconfigure.ProblemMessageProvider;
 import com.neolama.common.exception.core.Problem;
 import com.neolama.common.exception.core.ProblemDetails;
 import com.neolama.common.exception.core.ProblemMessageSourceResolver;
+import com.neolama.common.exception.core.ProblemUtils;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import java.util.List;
-import org.apache.commons.lang3.ClassUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.NativeWebRequest;
@@ -34,7 +34,7 @@ public interface ConstraintViolationAdvice extends Exceptional {
   @ExceptionHandler
   default ProblemDetails handleConstraintViolationException(
       final ConstraintViolationException exception, final NativeWebRequest request) {
-    final String errorKey = ClassUtils.getShortClassName(exception.getClass());
+    final String errorKey = ProblemUtils.errorKey(exception.getClass());
     final HttpStatus status = resolveStatus(exception, HttpStatus.BAD_REQUEST);
     final List<Problem> violations =
         exception.getConstraintViolations().stream()
@@ -59,7 +59,7 @@ public interface ConstraintViolationAdvice extends Exceptional {
       final ConstraintViolation<?> violation,
       final ConstraintViolationException exception,
       final HttpStatus status) {
-    final String exceptionKey = ClassUtils.getShortClassName(exception.getClass());
+    final String exceptionKey = ProblemUtils.errorKey(exception.getClass());
     final String propertyPath = violation.getPropertyPath().toString();
     logErrorKey(exceptionKey + DOT + propertyPath);
 

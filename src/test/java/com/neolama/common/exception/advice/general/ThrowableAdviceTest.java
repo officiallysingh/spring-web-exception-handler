@@ -19,6 +19,30 @@ class ThrowableAdviceTest {
 
   @Autowired private MockMvcTester mvc;
 
+  /** The key is the simple name, without the enclosing class, so messages read as for any class. */
+  @Test
+  void nestedExceptionUsesItsSimpleName() {
+    assertProblem(
+        this.mvc.get().uri("/general/nested").exchange(),
+        409,
+        "order-locked-exception",
+        "Order is locked by another user");
+  }
+
+  @Test
+  void anonymousExceptionUsesItsNamedSuperclass() {
+    assertProblem(
+        this.mvc.get().uri("/general/anonymous").exchange(),
+        500,
+        "illegal-state-exception",
+        "An unexpected error occurred");
+  }
+
+  @Test
+  void localExceptionUsesItsSimpleName() {
+    assertProblem(this.mvc.get().uri("/general/local").exchange(), 500, "local-failure-exception");
+  }
+
   @Test
   void unknownExceptionIs500AndHidesItsMessage() {
     assertProblem(

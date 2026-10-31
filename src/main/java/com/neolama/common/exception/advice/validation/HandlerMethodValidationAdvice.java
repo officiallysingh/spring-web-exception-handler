@@ -7,11 +7,11 @@ import com.neolama.common.exception.autoconfigure.ProblemMessageProvider;
 import com.neolama.common.exception.core.Problem;
 import com.neolama.common.exception.core.ProblemDetails;
 import com.neolama.common.exception.core.ProblemMessageSourceResolver;
+import com.neolama.common.exception.core.ProblemUtils;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.lang3.ClassUtils;
 import org.springframework.context.MessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.method.ParameterValidationResult;
@@ -50,7 +50,7 @@ public interface HandlerMethodValidationAdvice extends Exceptional {
   @ExceptionHandler
   default ProblemDetails handleHandlerMethodValidation(
       final HandlerMethodValidationException exception, final NativeWebRequest request) {
-    final String errorKey = ClassUtils.getShortClassName(exception.getClass());
+    final String errorKey = ProblemUtils.errorKey(exception.getClass());
     final HttpStatus status = resolveStatus(errorKey, HttpStatus.BAD_REQUEST);
     final List<Problem> violations =
         exception.getParameterValidationResults().stream()
