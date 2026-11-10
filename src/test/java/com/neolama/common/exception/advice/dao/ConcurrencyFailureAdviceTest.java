@@ -95,6 +95,15 @@ class ConcurrencyFailureAdviceTest {
   }
 
   @Test
+  void unknownCommitResultIsAnsweredAsFallback() {
+    assertProblem(
+        this.mvc.get().uri("/dao/unknown-commit-result-mongo").exchange(),
+        500,
+        "transient-session-exception",
+        "An unexpected error occurred");
+  }
+
+  @Test
   void transientDuplicateStaysDuplicate() {
     assertProblem(
         this.mvc.get().uri("/dao/duplicate-mongo-transient").exchange(),

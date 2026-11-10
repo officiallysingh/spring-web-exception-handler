@@ -2,7 +2,7 @@ package com.neolama.common.exception.advice;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.neolama.common.exception.autoconfigure.DatabaseConstraintResolverConfiguration;
+import com.neolama.common.exception.autoconfigure.DataAccessConfiguration;
 import com.neolama.common.exception.autoconfigure.ProblemConfiguration;
 import com.neolama.common.exception.autoconfigure.WebDaoExceptionHandler;
 import com.neolama.common.exception.autoconfigure.WebExceptionHandler;
@@ -63,7 +63,7 @@ class TypeUrlTest {
             .withConfiguration(
                 AutoConfigurations.of(
                     ProblemConfiguration.class,
-                    DatabaseConstraintResolverConfiguration.class,
+                    DataAccessConfiguration.class,
                     WebDaoExceptionHandler.class,
                     WebSecurityExceptionHandler.class,
                     WebExceptionHandler.class))

@@ -127,6 +127,14 @@ class DaoTestController {
     throw new TransientSessionException(new MongoException(251, "NoSuchTransaction"));
   }
 
+  /** A commit whose outcome is unknown: retrying the transaction could apply it twice. */
+  @GetMapping("/unknown-commit-result-mongo")
+  String unknownCommitResultMongo() {
+    final MongoException cause = new MongoException(50, "operation exceeded time limit");
+    cause.addLabel(MongoException.UNKNOWN_TRANSACTION_COMMIT_RESULT_LABEL);
+    throw new TransientSessionException(cause);
+  }
+
   /** A duplicate stays a duplicate even when the server labels it transient. */
   @GetMapping("/duplicate-mongo-transient")
   String duplicateMongoTransient() {

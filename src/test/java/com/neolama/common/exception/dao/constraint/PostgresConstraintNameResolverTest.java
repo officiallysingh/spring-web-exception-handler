@@ -1,4 +1,4 @@
-package com.neolama.common.exception.advice.dao.constraint;
+package com.neolama.common.exception.dao.constraint;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

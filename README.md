@@ -50,7 +50,8 @@ The wording of every response (`code`, `title`, `detail`) and its `status` can b
 
 * Java 21
 * Spring Boot 4.1+ **servlet** web application (`spring-boot-starter-webmvc`). Reactive (WebFlux)
-  and non-web applications are not supported; the library switches itself off there.
+  and non-web applications are not supported; the library switches its handlers off there. Only the
+  [concurrency failure detector](#retrying-lost-races) stays, for retries outside the web layer.
 * Jackson 3, which comes with `spring-boot-starter-webmvc`.
 
 Optional integrations switch on when the matching library is on your classpath:
@@ -67,7 +68,7 @@ your application decides which ones, and which versions, it uses.
 
 ## Installation
 
-> **Current version: 1.0.0-rc5**, available from
+> **Current version: 1.0.0-rc6**, available from
 > [Maven Central](https://central.sonatype.com/artifact/com.neolama/spring-web-exception-handler).
 
 Maven
@@ -76,14 +77,14 @@ Maven
 <dependency>
     <groupId>com.neolama</groupId>
     <artifactId>spring-web-exception-handler</artifactId>
-    <version>1.0.0-rc5</version>
+    <version>1.0.0-rc6</version>
 </dependency>
 ```
 
 Gradle
 
 ```groovy
-implementation 'com.neolama:spring-web-exception-handler:1.0.0-rc5'
+implementation 'com.neolama:spring-web-exception-handler:1.0.0-rc6'
 ```
 
 Spring Boot auto-configuration registers everything. There is no annotation to add.
@@ -540,7 +541,66 @@ that hierarchy. Both get the plain `ConcurrencyFailureException` answer, with st
   arrives as a `TransientClientSessionException`.
 
 Only `status.ConcurrencyFailureException` is consulted for these. A duplicate key stays a duplicate even when the
-server labels it transient. Any other `TransientDataAccessException` is answered by the fallback, as before.
+server labels it transient. An error labelled `UnknownTransactionCommitResult` is never a lost race: the commit may
+have succeeded, so retrying the whole transaction could apply it twice. It, and any other
+`TransientDataAccessException`, is answered by the fallback.
+
+Which exceptions count as lost races is decided by the
+[`ConcurrencyFailureDetector`](#retrying-lost-races), so the response and your own retries always agree.
+
+### Retrying lost races
+
+[`ConcurrencyFailureDetector`](src/main/java/com/neolama/common/exception/dao/ConcurrencyFailureDetector.java)
+answers one question: is this exception a lost race that a retry can win? It gives the same answer the
+advices use, and works outside the web layer, in scheduled jobs, event listeners, and retry predicates.
+`isConcurrencyFailure(error)` is `true` when:
+
+- any exception in the cause chain is a Spring `ConcurrencyFailureException`, which covers
+  optimistic-locking failures such as an `@Version` mismatch and pessimistic-locking failures such as
+  a lock timeout; or
+- the driver error at the end of the cause chain is a lost race. For MongoDB that is a `WriteConflict`
+  (code `112`) or an error labelled `TransientTransactionError`, but never a duplicate key or an error
+  labelled `UnknownTransactionCommitResult`.
+
+It is `false` for `null` and everything else. A cause chain that loops is walked once.
+
+The detector is a bean in any application with `spring-tx` on the classpath, web or not, and does not
+need Spring MVC. `problem.dao-advice-enabled=false` turns off the advices only, not the detector.
+
+Spring Framework 7's `@Retryable(predicate = ...)` creates the predicate through the bean factory, so
+the predicate can take the detector as a constructor parameter. Retrying needs
+`@EnableResilientMethods` on a configuration class:
+
+```java
+class LostRacePredicate implements MethodRetryPredicate {
+
+  private final ConcurrencyFailureDetector detector;
+
+  LostRacePredicate(final ConcurrencyFailureDetector detector) {
+    this.detector = detector;
+  }
+
+  @Override
+  public boolean shouldRetry(final Method method, final Throwable throwable) {
+    return this.detector.isConcurrencyFailure(throwable);
+  }
+}
+
+@Service
+class TransferService {
+
+  @Retryable(predicate = LostRacePredicate.class, maxRetries = 3, delay = 50)
+  @Transactional
+  public void transfer(final String from, final String to, final long amount) { ... }
+}
+```
+
+`@Retryable` must wrap the whole transaction: a MongoDB transaction that lost a race is aborted, so only
+a new transaction can succeed. Put the retry on a method that starts the transaction, as above, not on
+one called inside it.
+
+To change the rule, define your own `ConcurrencyFailureDetector` bean, for example a subclass. It
+replaces the library's, also for the advices.
 
 ## Spring Security
 
@@ -589,7 +649,7 @@ library does not create its own of that type.
 | Property | Default | Meaning |
 | --- | --- | --- |
 | `problem.type-url` | not set | Base URL of a page that documents your error codes. When set, `type` becomes `{type-url}#{code}`, such as `https://example.com/problems#employee-not-found`. Applies to every advice, including your own advices built on `Exceptional`. Must be an absolute URI; the application fails to start otherwise. |
-| `problem.dao-advice-enabled` | `true` | Set to `false` to turn off [database error](#database-errors) handling, including [concurrent updates](#concurrent-updates). The fallback then handles those exceptions. |
+| `problem.dao-advice-enabled` | `true` | Set to `false` to turn off [database error](#database-errors) handling, including [concurrent updates](#concurrent-updates). The fallback then handles those exceptions. The [concurrency failure detector](#retrying-lost-races) stays. |
 | `problem.security-advice-enabled` | `true` | Set to `false` to turn off [Spring Security](#spring-security) handling and the entry point and access-denied handler beans. |
 
 ### Spring properties that matter
@@ -606,14 +666,14 @@ replaces a problem response.
 ### Auto-configurations
 
 From [`AutoConfiguration.imports`](src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports).
-All of them load only in servlet web applications.
+All of them except `DataAccessConfiguration` load only in servlet web applications.
 
 | Auto-configuration | Provides | Extra condition |
 | --- | --- | --- |
 | [`ProblemConfiguration`](src/main/java/com/neolama/common/exception/autoconfigure/ProblemConfiguration.java) | Message lookups, the `problem.type-url` value for all advices, and the Jackson module for status and method values | |
 | [`WebExceptionHandler`](src/main/java/com/neolama/common/exception/autoconfigure/WebExceptionHandler.java) | General, HTTP, routing, body, and validation handling | |
 | [`WebDaoExceptionHandler`](src/main/java/com/neolama/common/exception/autoconfigure/WebDaoExceptionHandler.java) | Database error and concurrent-update handling | `spring-tx` present, `problem.dao-advice-enabled` not `false` |
-| [`DatabaseConstraintResolverConfiguration`](src/main/java/com/neolama/common/exception/autoconfigure/DatabaseConstraintResolverConfiguration.java) | PostgreSQL and MongoDB constraint name resolvers | As above, plus the driver |
+| [`DataAccessConfiguration`](src/main/java/com/neolama/common/exception/autoconfigure/DataAccessConfiguration.java) | The [`ConcurrencyFailureDetector`](#retrying-lost-races), unless you define one, and the PostgreSQL and MongoDB constraint name resolvers | Any application, web or not, with `spring-tx` present; each resolver also needs its driver |
 | [`WebSecurityExceptionHandler`](src/main/java/com/neolama/common/exception/autoconfigure/WebSecurityExceptionHandler.java) | Security handling, entry point, access-denied handler | Spring Security present, `problem.security-advice-enabled` not `false` |
 
 ## Customizing

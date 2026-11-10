@@ -1,4 +1,4 @@
-package com.neolama.common.exception.advice.dao.constraint;
+package com.neolama.common.exception.dao.constraint;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -54,6 +54,25 @@ class MongoConstraintNameResolverTest {
     final MongoException cause = new MongoException(251, "NoSuchTransaction");
     cause.addLabel(MongoException.TRANSIENT_TRANSACTION_ERROR_LABEL);
     assertThat(this.resolver.isConcurrencyFailure(cause)).isTrue();
+  }
+
+  /** A retry cannot win a duplicate, even when the server labels it transient. */
+  @Test
+  void transientDuplicateKeyIsNotConcurrencyFailure() {
+    final MongoException cause = new MongoException(11000, "E11000");
+    cause.addLabel(MongoException.TRANSIENT_TRANSACTION_ERROR_LABEL);
+    assertThat(this.resolver.isConcurrencyFailure(cause)).isFalse();
+  }
+
+  /** The commit may have succeeded, so retrying the whole transaction could apply it twice. */
+  @Test
+  void unknownCommitResultIsNotConcurrencyFailure() {
+    final MongoException cause = new MongoException(50, "MaxTimeMSExpired");
+    cause.addLabel(MongoException.UNKNOWN_TRANSACTION_COMMIT_RESULT_LABEL);
+    assertThat(this.resolver.isConcurrencyFailure(cause)).isFalse();
+    final MongoException writeConflict = new MongoException(112, "WriteConflict");
+    writeConflict.addLabel(MongoException.UNKNOWN_TRANSACTION_COMMIT_RESULT_LABEL);
+    assertThat(this.resolver.isConcurrencyFailure(writeConflict)).isFalse();
   }
 
   @Test

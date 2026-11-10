@@ -37,19 +37,20 @@ import org.springframework.web.context.request.NativeWebRequest;
  *
  * <p>Spring Data MongoDB translates an aborted transaction, such as one that lost a write conflict
  * to a concurrent transaction, into a {@link TransientDataAccessException} that is not a {@link
- * ConcurrencyFailureException}. When its driver error {@link #isConcurrencyFailure(Throwable) is a
- * concurrency failure}, it is answered as a plain {@code ConcurrencyFailureException}. Any other
- * transient failure is answered as the {@code Throwable} fallback would answer it.
+ * ConcurrencyFailureException}. When it {@link #isConcurrencyFailure(Throwable) is a concurrency
+ * failure}, it is answered as a plain {@code ConcurrencyFailureException}. Any other transient
+ * failure is answered as the {@code Throwable} fallback would answer it.
  */
 public interface ConcurrencyFailureAdvice extends Exceptional {
 
   /**
-   * Returns whether the most specific cause of a data-access exception is a concurrency failure.
+   * Returns whether a data-access exception is a lost race that a retry can win.
    *
-   * @param cause the most specific cause
-   * @return {@code true} when a resolver supports the cause and reports a concurrency failure
+   * @param error the data-access exception
+   * @return {@code true} when the exception is a concurrency failure
+   * @see com.neolama.common.exception.dao.ConcurrencyFailureDetector
    */
-  boolean isConcurrencyFailure(final Throwable cause);
+  boolean isConcurrencyFailure(final Throwable error);
 
   /**
    * Handles a concurrency failure.
@@ -74,7 +75,7 @@ public interface ConcurrencyFailureAdvice extends Exceptional {
   @ExceptionHandler
   default ProblemDetails handleTransientDataAccess(
       final TransientDataAccessException exception, final NativeWebRequest request) {
-    if (isConcurrencyFailure(exception.getMostSpecificCause())) {
+    if (isConcurrencyFailure(exception)) {
       return toConcurrencyFailureResponse(exception, request);
     }
     final ProblemDetails problemDetails = toProblemDetails(exception);

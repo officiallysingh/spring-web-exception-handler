@@ -1,4 +1,4 @@
-package com.neolama.common.exception.advice.dao.constraint;
+package com.neolama.common.exception.dao.constraint;
 
 import static com.neolama.common.exception.core.ProblemConstant.DOT;
 
@@ -16,7 +16,9 @@ import org.jspecify.annotations.Nullable;
  * unique violation is recognised by its error code, in the driver's {@link
  * ErrorCategory#DUPLICATE_KEY} category. A concurrency failure is a {@code WriteConflict} (code
  * {@code 112}) or any error the server labels {@code TransientTransactionError}, meaning the whole
- * transaction can be retried.
+ * transaction can be retried. A duplicate key is never one, since a retry cannot win it, and
+ * neither is an error labelled {@code UnknownTransactionCommitResult}: the commit may have
+ * succeeded, so retrying the whole transaction could apply it twice.
  *
  * @author Rajveer Singh
  */
@@ -46,6 +48,8 @@ public class MongoConstraintNameResolver implements ConstraintNameResolver {
   @Override
   public boolean isConcurrencyFailure(final Throwable cause) {
     return cause instanceof MongoException exception
+        && !isUniqueViolation(exception)
+        && !exception.hasErrorLabel(MongoException.UNKNOWN_TRANSACTION_COMMIT_RESULT_LABEL)
         && (exception.getCode() == WRITE_CONFLICT
             || exception.hasErrorLabel(MongoException.TRANSIENT_TRANSACTION_ERROR_LABEL));
   }
