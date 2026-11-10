@@ -14,7 +14,9 @@ import org.jspecify.annotations.Nullable;
  * <p>Reads {@code collection.index} from a duplicate-key message such as {@code E11000 duplicate
  * key error collection: db.states index: name_1 dup key: ...}, which gives {@code states.name_1}. A
  * unique violation is recognised by its error code, in the driver's {@link
- * ErrorCategory#DUPLICATE_KEY} category.
+ * ErrorCategory#DUPLICATE_KEY} category. A concurrency failure is a {@code WriteConflict} (code
+ * {@code 112}) or any error the server labels {@code TransientTransactionError}, meaning the whole
+ * transaction can be retried.
  *
  * @author Rajveer Singh
  */
@@ -23,6 +25,9 @@ public class MongoConstraintNameResolver implements ConstraintNameResolver {
   /** Captures the collection (without the database prefix) and the index name. */
   private static final Pattern DUPLICATE_KEY =
       Pattern.compile("collection: [^.\\s]+\\.(\\S+) index: (\\S+)");
+
+  /** The server's {@code WriteConflict} error code. */
+  private static final int WRITE_CONFLICT = 112;
 
   /** {@inheritDoc} */
   @Override
@@ -35,6 +40,14 @@ public class MongoConstraintNameResolver implements ConstraintNameResolver {
   public boolean isUniqueViolation(final Throwable cause) {
     return cause instanceof MongoException exception
         && ErrorCategory.fromErrorCode(exception.getCode()) == ErrorCategory.DUPLICATE_KEY;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean isConcurrencyFailure(final Throwable cause) {
+    return cause instanceof MongoException exception
+        && (exception.getCode() == WRITE_CONFLICT
+            || exception.hasErrorLabel(MongoException.TRANSIENT_TRANSACTION_ERROR_LABEL));
   }
 
   /** {@inheritDoc} */

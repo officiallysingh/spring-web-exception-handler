@@ -44,6 +44,27 @@ class MongoConstraintNameResolverTest {
   }
 
   @Test
+  void writeConflictIsConcurrencyFailure() {
+    assertThat(this.resolver.isConcurrencyFailure(new MongoException(112, "WriteConflict")))
+        .isTrue();
+  }
+
+  @Test
+  void transientTransactionErrorIsConcurrencyFailure() {
+    final MongoException cause = new MongoException(251, "NoSuchTransaction");
+    cause.addLabel(MongoException.TRANSIENT_TRANSACTION_ERROR_LABEL);
+    assertThat(this.resolver.isConcurrencyFailure(cause)).isTrue();
+  }
+
+  @Test
+  void otherErrorsAreNotConcurrencyFailures() {
+    assertThat(this.resolver.isConcurrencyFailure(new MongoException(251, "NoSuchTransaction")))
+        .isFalse();
+    assertThat(this.resolver.isConcurrencyFailure(new MongoException(11000, "E11000"))).isFalse();
+    assertThat(this.resolver.isConcurrencyFailure(new RuntimeException("WriteConflict"))).isFalse();
+  }
+
+  @Test
   void emptyMessageReturnsNull() {
     assertThat(this.resolver.resolveConstraintName(new MongoException(""))).isNull();
   }

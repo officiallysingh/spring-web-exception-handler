@@ -61,6 +61,12 @@ public class WebDaoExceptionHandler implements DaoAdvice {
     return resolverFor(cause).map(resolver -> resolver.isUniqueViolation(cause)).orElse(false);
   }
 
+  /** {@inheritDoc} */
+  @Override
+  public boolean isConcurrencyFailure(final Throwable cause) {
+    return resolverFor(cause).map(resolver -> resolver.isConcurrencyFailure(cause)).orElse(false);
+  }
+
   /**
    * Returns the first resolver that supports the given cause.
    *

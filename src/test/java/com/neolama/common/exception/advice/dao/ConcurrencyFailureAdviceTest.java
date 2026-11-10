@@ -62,6 +62,47 @@ class ConcurrencyFailureAdviceTest {
         RETRY);
   }
 
+  /**
+   * A lost write conflict arrives as a data-integrity violation; it gets the plain concurrency key,
+   * whose configured 429 wins over the 503 default.
+   */
+  @Test
+  void mongoWriteConflictIsConcurrencyFailure() {
+    assertProblem(
+        this.mvc.get().uri("/dao/write-conflict-mongo").exchange(),
+        429,
+        "concurrency-failure-exception",
+        RETRY);
+  }
+
+  /** An aborted transaction arrives as a transient exception; same answer as a write conflict. */
+  @Test
+  void mongoTransientTransactionIsConcurrencyFailure() {
+    assertProblem(
+        this.mvc.get().uri("/dao/transient-transaction-mongo").exchange(),
+        429,
+        "concurrency-failure-exception",
+        RETRY);
+  }
+
+  @Test
+  void otherTransientFailureIsAnsweredAsFallback() {
+    assertProblem(
+        this.mvc.get().uri("/dao/transient-other").exchange(),
+        500,
+        "transient-session-exception",
+        "An unexpected error occurred");
+  }
+
+  @Test
+  void transientDuplicateStaysDuplicate() {
+    assertProblem(
+        this.mvc.get().uri("/dao/duplicate-mongo-transient").exchange(),
+        409,
+        "conflict",
+        "State name must be unique");
+  }
+
   @Nested
   @TestPropertySource(properties = "problem.dao-advice-enabled=false")
   class Disabled {

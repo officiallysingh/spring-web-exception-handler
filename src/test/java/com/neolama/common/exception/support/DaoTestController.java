@@ -9,6 +9,7 @@ import org.springframework.dao.ConcurrencyFailureException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.dao.TransientDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -100,6 +101,43 @@ class DaoTestController {
     throw new ConcurrencyFailureException("concurrent update");
   }
 
+  /**
+   * What Spring Data MongoDB throws when a transaction loses a write conflict: code {@code 112} is
+   * a data-integrity code in {@code MongoDbErrorCodes}.
+   */
+  @GetMapping("/write-conflict-mongo")
+  String writeConflictMongo() {
+    final MongoException cause =
+        new MongoException(112, "WriteConflict error: this operation conflicted with another");
+    cause.addLabel(MongoException.TRANSIENT_TRANSACTION_ERROR_LABEL);
+    throw new DataIntegrityViolationException(cause.getMessage(), cause);
+  }
+
+  /** Stands in for Spring Data MongoDB's {@code TransientClientSessionException}. */
+  @GetMapping("/transient-transaction-mongo")
+  String transientTransactionMongo() {
+    final MongoException cause = new MongoException(251, "Transaction 3 has been aborted.");
+    cause.addLabel(MongoException.TRANSIENT_TRANSACTION_ERROR_LABEL);
+    throw new TransientSessionException(cause);
+  }
+
+  /** A transient failure whose cause is not a concurrency failure. */
+  @GetMapping("/transient-other")
+  String transientOther() {
+    throw new TransientSessionException(new MongoException(251, "NoSuchTransaction"));
+  }
+
+  /** A duplicate stays a duplicate even when the server labels it transient. */
+  @GetMapping("/duplicate-mongo-transient")
+  String duplicateMongoTransient() {
+    final MongoException cause =
+        new MongoException(
+            11000,
+            "E11000 duplicate key error collection: db.states index: name_1 dup key: { name: \"x\" }");
+    cause.addLabel(MongoException.TRANSIENT_TRANSACTION_ERROR_LABEL);
+    throw new DuplicateKeyException("insert failed", cause);
+  }
+
   @GetMapping("/annotated-violation")
   String annotatedViolation() {
     throw new RejectedDataException();
@@ -111,6 +149,14 @@ class DaoTestController {
 
     RejectedDataException() {
       super("rejected", new SQLException("check constraint failed"));
+    }
+  }
+
+  /** A transient failure that is not a concurrency failure, as Spring Data MongoDB throws. */
+  static final class TransientSessionException extends TransientDataAccessException {
+
+    TransientSessionException(final Throwable cause) {
+      super(cause.getMessage(), cause);
     }
   }
 

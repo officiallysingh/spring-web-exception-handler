@@ -61,6 +61,17 @@ class WebDaoExceptionHandlerTest {
   }
 
   @Test
+  void concurrencyFailureIsAskedOfTheSupportingResolver() {
+    assertThat(this.handler.isConcurrencyFailure(new MongoException(112, "WriteConflict")))
+        .isTrue();
+    assertThat(
+            this.handler.isConcurrencyFailure(
+                new PSQLException("serialization failure", PSQLState.UNKNOWN_STATE)))
+        .isFalse();
+    assertThat(this.handler.isConcurrencyFailure(new SQLException("H2 error"))).isFalse();
+  }
+
+  @Test
   void nullMessageDoesNotThrow() {
     assertThat(this.handler.resolveConstraintName(new MongoException((String) null))).isNull();
   }

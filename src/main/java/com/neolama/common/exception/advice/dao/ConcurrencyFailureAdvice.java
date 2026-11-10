@@ -7,8 +7,10 @@ import com.neolama.common.exception.advice.Exceptional;
 import com.neolama.common.exception.core.ProblemDetails;
 import com.neolama.common.exception.core.ProblemUtils;
 import org.springframework.dao.ConcurrencyFailureException;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.dao.PessimisticLockingFailureException;
+import org.springframework.dao.TransientDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.NativeWebRequest;
@@ -32,8 +34,22 @@ import org.springframework.web.context.request.NativeWebRequest;
  * <p>The error key is that Spring base class, not the class thrown: JPA throws subclasses such as
  * {@code ObjectOptimisticLockingFailureException}, so one message bundle fits JPA and MongoDB. The
  * log still names the class thrown.
+ *
+ * <p>Spring Data MongoDB translates an aborted transaction, such as one that lost a write conflict
+ * to a concurrent transaction, into a {@link TransientDataAccessException} that is not a {@link
+ * ConcurrencyFailureException}. When its driver error {@link #isConcurrencyFailure(Throwable) is a
+ * concurrency failure}, it is answered as a plain {@code ConcurrencyFailureException}. Any other
+ * transient failure is answered as the {@code Throwable} fallback would answer it.
  */
 public interface ConcurrencyFailureAdvice extends Exceptional {
+
+  /**
+   * Returns whether the most specific cause of a data-access exception is a concurrency failure.
+   *
+   * @param cause the most specific cause
+   * @return {@code true} when a resolver supports the cause and reports a concurrency failure
+   */
+  boolean isConcurrencyFailure(final Throwable cause);
 
   /**
    * Handles a concurrency failure.
@@ -45,6 +61,37 @@ public interface ConcurrencyFailureAdvice extends Exceptional {
   @ExceptionHandler
   default ProblemDetails handleConcurrencyFailure(
       final ConcurrencyFailureException exception, final NativeWebRequest request) {
+    return toConcurrencyFailureResponse(exception, request);
+  }
+
+  /**
+   * Handles a transient data-access failure that is not a {@link ConcurrencyFailureException}.
+   *
+   * @param exception the transient failure
+   * @param request the current web request
+   * @return problem details for the failure
+   */
+  @ExceptionHandler
+  default ProblemDetails handleTransientDataAccess(
+      final TransientDataAccessException exception, final NativeWebRequest request) {
+    if (isConcurrencyFailure(exception.getMostSpecificCause())) {
+      return toConcurrencyFailureResponse(exception, request);
+    }
+    final ProblemDetails problemDetails = toProblemDetails(exception);
+    return toResponse(problemDetails, request, exception);
+  }
+
+  /**
+   * Answers a data-access exception as a concurrency failure. An exception that is not a {@link
+   * ConcurrencyFailureException}, such as a MongoDB write conflict, gets the error key {@code
+   * ConcurrencyFailureException}, and only that key is consulted for its status.
+   *
+   * @param exception the exception, a concurrency failure or one whose cause is
+   * @param request the current web request
+   * @return problem details for the failure
+   */
+  default ProblemDetails toConcurrencyFailureResponse(
+      final DataAccessException exception, final NativeWebRequest request) {
     final boolean optimistic = exception instanceof OptimisticLockingFailureException;
     final Class<?> keyClass;
     if (optimistic) {
@@ -59,7 +106,7 @@ public interface ConcurrencyFailureAdvice extends Exceptional {
         optimistic ? HttpStatus.CONFLICT : HttpStatus.SERVICE_UNAVAILABLE;
     final String thrownKey = ProblemUtils.errorKey(exception.getClass());
     final HttpStatus status =
-        thrownKey.equals(errorKey)
+        thrownKey.equals(errorKey) || !(exception instanceof ConcurrencyFailureException)
             ? resolveStatus(exception, defaultStatus, errorKey)
             : resolveStatus(exception, defaultStatus, thrownKey, errorKey);
     final ProblemDetails problemDetails =

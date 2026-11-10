@@ -67,7 +67,7 @@ your application decides which ones, and which versions, it uses.
 
 ## Installation
 
-> **Current version: 1.0.0-rc4**, available from
+> **Current version: 1.0.0-rc5**, available from
 > [Maven Central](https://central.sonatype.com/artifact/com.neolama/spring-web-exception-handler).
 
 Maven
@@ -76,14 +76,14 @@ Maven
 <dependency>
     <groupId>com.neolama</groupId>
     <artifactId>spring-web-exception-handler</artifactId>
-    <version>1.0.0-rc4</version>
+    <version>1.0.0-rc5</version>
 </dependency>
 ```
 
 Gradle
 
 ```groovy
-implementation 'com.neolama:spring-web-exception-handler:1.0.0-rc4'
+implementation 'com.neolama:spring-web-exception-handler:1.0.0-rc5'
 ```
 
 Spring Boot auto-configuration registers everything. There is no annotation to add.
@@ -530,6 +530,17 @@ The error key is the Spring base class, not the class thrown, so one bundle fits
 `status.` message for the class thrown, such as `status.CannotAcquireLockException`, is tried before
 the base class. The log names the class thrown. A `503` is logged at ERROR with its stack trace, so deadlocks and lock
 timeouts stay visible.
+
+In a MongoDB transaction, Spring Data MongoDB reports the other two ways of losing a race with exceptions outside
+that hierarchy. Both get the plain `ConcurrencyFailureException` answer, with status `503` and error key
+`ConcurrencyFailureException`:
+
+- A `WriteConflict` (code `112`) arrives as a `DataIntegrityViolationException`.
+- An aborted transaction, meaning any driver error labelled `TransientTransactionError` such as `NoSuchTransaction`,
+  arrives as a `TransientClientSessionException`.
+
+Only `status.ConcurrencyFailureException` is consulted for these. A duplicate key stays a duplicate even when the
+server labels it transient. Any other `TransientDataAccessException` is answered by the fallback, as before.
 
 ## Spring Security
 
