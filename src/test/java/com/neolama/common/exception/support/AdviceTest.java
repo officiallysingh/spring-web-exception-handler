@@ -9,8 +9,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 
 /**
- * Boots {@link TestApplication} with MockMvc and the shared message bundles: {@code
- * i18n/test-messages} for test entries, then the library's own {@code i18n/problems}.
+ * Boots {@link TestApplication} with MockMvc and the shared test message bundle {@code
+ * i18n/test-messages}.
  *
  * <p>Tests that need other bundles or properties add {@code @TestPropertySource} on a nested class.
  */
@@ -22,6 +22,6 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 @AutoConfigureMockMvc
 public @interface AdviceTest {
 
-  /** Message bundles used by advice tests. */
-  String BASENAMES = "i18n/test-messages,i18n/problems";
+  /** Message bundle used by advice tests. */
+  String BASENAMES = "i18n/test-messages";
 }

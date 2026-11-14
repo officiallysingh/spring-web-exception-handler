@@ -48,7 +48,7 @@ public interface MessageNotReadableAdvice extends Exceptional {
       logExceptionKey(exceptionKey);
       final HttpStatus status = resolveStatus(exception, HttpStatus.BAD_REQUEST);
       final ProblemDetails problemDetails =
-          toProblemDetails(exception, status, MALFORMED_BODY_DETAIL);
+          toProblemDetails(exception, status, "Malformed request body");
       return toResponse(problemDetails, request, exception);
     }
   }
@@ -91,7 +91,7 @@ public interface MessageNotReadableAdvice extends Exceptional {
             ProblemMessageSourceResolver.of(titleCodes, status.getReasonPhrase()));
     final String detail =
         ProblemMessageProvider.getMessage(
-            ProblemMessageSourceResolver.of(detailCodes, MALFORMED_BODY_DETAIL));
+            ProblemMessageSourceResolver.of(detailCodes, "Malformed request body"));
 
     final ProblemDetails problemDetails = ProblemDetails.of(status, code, title, detail);
     return toResponse(problemDetails, request, invalidFormatException);

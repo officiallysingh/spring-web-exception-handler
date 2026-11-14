@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 
-/** Size limits are reported as readable sizes; the upload detail comes from the shipped bundle. */
+/** Size limits are reported as readable sizes. */
 @AdviceTest
 class SizeLimitAdviceTest {
 

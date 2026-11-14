@@ -44,7 +44,7 @@ public interface MethodArgumentTypeMismatchAdvice extends Exceptional {
     final HttpStatus status =
         resolveStatus(exception, HttpStatus.BAD_REQUEST, errorKey, exceptionKey);
     final ProblemDetails problemDetails =
-        ProblemDetails.of(errorKey, "Invalid value for parameter " + parameterName, status);
+        toProblemDetails(errorKey, status, "Invalid value for parameter " + parameterName);
     return toResponse(problemDetails, request, exception);
   }
 }

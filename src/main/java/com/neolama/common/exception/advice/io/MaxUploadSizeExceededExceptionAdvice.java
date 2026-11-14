@@ -1,7 +1,5 @@
 package com.neolama.common.exception.advice.io;
 
-import static com.neolama.common.exception.core.ProblemConstant.UPLOAD_SIZE_EXCEEDED_DETAIL;
-
 import com.neolama.common.exception.advice.Exceptional;
 import com.neolama.common.exception.core.ProblemDetails;
 import com.neolama.common.exception.core.ProblemUtils;
@@ -40,7 +38,11 @@ public interface MaxUploadSizeExceededExceptionAdvice extends Exceptional {
 
     final HttpStatus status = resolveStatus(exception, HttpStatus.CONTENT_TOO_LARGE);
     final ProblemDetails problemDetails =
-        toProblemDetails(errorKey, status, UPLOAD_SIZE_EXCEEDED_DETAIL, maxFileSizeAllowed);
+        toProblemDetails(
+            errorKey,
+            status,
+            "Upload file size exceeded the maximum allowed limit: {0}",
+            maxFileSizeAllowed);
     return toResponse(problemDetails, request, exception);
   }
 }

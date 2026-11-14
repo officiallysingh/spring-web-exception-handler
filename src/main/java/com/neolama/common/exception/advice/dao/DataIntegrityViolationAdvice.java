@@ -2,7 +2,6 @@ package com.neolama.common.exception.advice.dao;
 
 import static com.neolama.common.exception.core.ProblemConstant.DEFAULT_DETAIL;
 import static com.neolama.common.exception.core.ProblemConstant.DOT;
-import static com.neolama.common.exception.core.ProblemConstant.DUPLICATE_KEY_DETAIL;
 
 import com.neolama.common.exception.advice.Exceptional;
 import com.neolama.common.exception.core.ProblemDetails;
@@ -27,8 +26,8 @@ import org.springframework.web.context.request.NativeWebRequest;
  *   <li>the error key {@code DuplicateKeyException.{constraint}}, such as {@code
  *       DuplicateKeyException.employees_name_key}, whichever exception class Spring threw, so one
  *       message bundle fits JDBC, JPA, and MongoDB;
- *   <li>status {@link HttpStatus#CONFLICT} and the detail {@value
- *       com.neolama.common.exception.core.ProblemConstant#DUPLICATE_KEY_DETAIL} by default.
+ *   <li>status {@link HttpStatus#CONFLICT} and the detail "The request conflicts with existing
+ *       data" by default.
  * </ul>
  *
  * <p>Any other violation, such as a NOT NULL or foreign-key violation, usually means the
@@ -84,7 +83,10 @@ public interface DataIntegrityViolationAdvice extends Exceptional {
             : resolveStatus(exception, defaultStatus, errorKey, exceptionKey);
 
     final ProblemDetails problemDetails =
-        toProblemDetails(errorKey, status, duplicate ? DUPLICATE_KEY_DETAIL : DEFAULT_DETAIL);
+        toProblemDetails(
+            errorKey,
+            status,
+            duplicate ? "The request conflicts with existing data" : DEFAULT_DETAIL);
     return toResponse(problemDetails, request, exception);
   }
 }

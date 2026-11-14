@@ -68,7 +68,7 @@ your application decides which ones, and which versions, it uses.
 
 ## Installation
 
-> **Current version: 1.0.0-rc6**, available from
+> **Current version: 1.0.0-rc7**, available from
 > [Maven Central](https://central.sonatype.com/artifact/com.neolama/spring-web-exception-handler).
 
 Maven
@@ -77,14 +77,14 @@ Maven
 <dependency>
     <groupId>com.neolama</groupId>
     <artifactId>spring-web-exception-handler</artifactId>
-    <version>1.0.0-rc6</version>
+    <version>1.0.0-rc7</version>
 </dependency>
 ```
 
 Gradle
 
 ```groovy
-implementation 'com.neolama:spring-web-exception-handler:1.0.0-rc6'
+implementation 'com.neolama:spring-web-exception-handler:1.0.0-rc7'
 ```
 
 Spring Boot auto-configuration registers everything. There is no annotation to add.
@@ -92,12 +92,11 @@ Spring Boot auto-configuration registers everything. There is no annotation to a
 ## Quick start
 
 1. **Add the dependency** (above).
-2. **Point Spring at your message bundle and the library's bundle.** List the library's
-   `i18n/problems` last, so your messages win:
+2. **Point Spring at your message bundle:**
 
    ```properties
    # src/main/resources/application.properties
-   spring.messages.basename=i18n/errors,i18n/problems
+   spring.messages.basename=i18n/errors
    ```
 
    Spring Boot creates a `MessageSource` only when a bundle named in `spring.messages.basename`
@@ -206,7 +205,8 @@ Every advice resolves the status the same way, first match wins:
 | Invalid value in a JSON body | Several candidate keys, most specific first ([Handled exceptions](#invalid-json-values)) |
 
 **To see the exact keys**, set the logger to TRACE while you write your bundle. Every key that is
-looked up is logged, most specific first:
+looked up is logged, most specific first. A problem you throw logs its error key; one built
+from a list of `Problem`s has no key and logs none:
 
 ```properties
 logging.level.com.neolama.common.exception.advice.Exceptional=TRACE
@@ -245,14 +245,6 @@ depend on the error:
 Messages are resolved for the request's locale, which Spring Boot reads from `Accept-Language`. A
 request with `Accept-Language: fr` reads `i18n/errors_fr.properties` first and falls back to
 `i18n/errors.properties`.
-
-### Messages shipped with the library
-
-[`i18n/problems.properties`](src/main/resources/i18n/problems.properties) contains:
-
-```properties
-detail.UnsupportedOperationException=The requested operation is not supported yet
-```
 
 ## Throwing problems from your code
 
@@ -397,7 +389,7 @@ safe to show for these client errors.
 | Exception | Status | Error key | Default detail |
 | --- | --- | --- | --- |
 | `ThrowableProblem` | As built | As built | As built |
-| `UnsupportedOperationException` | `501` | `UnsupportedOperationException` | `The requested operation is not supported yet` (shipped bundle) |
+| `UnsupportedOperationException` | `501` | `UnsupportedOperationException` | `The requested operation is not supported yet` |
 | `ResponseStatusException` | Its status; an unknown code becomes `400` or `500` | `ResponseStatusException` | Its reason, or the status reason phrase |
 | Any other exception | `@ResponseStatus`, the status of a Spring `ErrorResponse` (such as `503` for `AsyncRequestTimeoutException`), or `500` | Simple class name | 5xx: `An unexpected error occurred`. 4xx: the exception message |
 
@@ -656,7 +648,7 @@ library does not create its own of that type.
 
 | Property | Set to | Why |
 | --- | --- | --- |
-| `spring.messages.basename` | `i18n/errors,i18n/problems` (your bundles first) | Without it no message bundle is used. |
+| `spring.messages.basename` | Your bundles, such as `i18n/errors` | Without it no message bundle is used. |
 | `spring.mvc.problemdetails.enabled` | `false` (the default) | `true` makes Spring Boot's own handler answer instead of this library: no `code`, no `method`, no messages. |
 | `spring.web.resources.add-mappings` | Leave as is | With static resource mapping turned off, unknown paths raise `NoHandlerFoundException` instead of `NoResourceFoundException`. Both return `404`. |
 
@@ -790,7 +782,7 @@ no message bundle is loaded.
 
 ## Example responses
 
-Real responses from a demo application with this message bundle, captured with version 1.0.0-rc4:
+Real responses from a demo application with this message bundle, captured with version 1.0.0-rc7:
 
 ```properties
 message.MethodArgumentNotValidException.Size.employee.name=Name must be {4} to {3} characters long
@@ -816,7 +808,7 @@ detail.invalid.order=Order {0} has no items
   "code": "method-argument-not-valid-exception",
   "title": "Bad Request",
   "detail": "Request validation failed",
-  "timestamp": "2026-10-31T13:00:14.827565Z",
+  "timestamp": "2026-11-14T14:12:26.069812Z",
   "violations": [
     {
       "code": "400",
@@ -825,13 +817,13 @@ detail.invalid.order=Order {0} has no items
     },
     {
       "code": "400",
-      "message": "Name must be 3 to 10 characters long",
-      "details": "Invalid value for property name"
+      "message": "size must be between 2 and 5",
+      "details": "Invalid value for property designation"
     },
     {
       "code": "400",
-      "message": "size must be between 2 and 5",
-      "details": "Invalid value for property designation"
+      "message": "Name must be 3 to 10 characters long",
+      "details": "Invalid value for property name"
     }
   ]
 }
@@ -850,7 +842,7 @@ detail.invalid.order=Order {0} has no items
   "code": "handler-method-validation-exception",
   "title": "Bad Request",
   "detail": "Request validation failed",
-  "timestamp": "2026-10-31T13:00:14.85154Z",
+  "timestamp": "2026-11-14T14:12:26.098207Z",
   "violations": [
     {
       "code": "400",
@@ -874,7 +866,7 @@ detail.invalid.order=Order {0} has no items
   "code": "bad-request",
   "title": "Bad Request",
   "detail": "Required request parameter 'page' for method parameter type int is not present",
-  "timestamp": "2026-10-31T13:00:14.853413Z"
+  "timestamp": "2026-11-14T14:12:26.112549Z"
 }
 ```
 
@@ -891,7 +883,7 @@ detail.invalid.order=Order {0} has no items
   "code": "bad-request",
   "title": "Bad Request",
   "detail": "Invalid value for parameter joinedAfter",
-  "timestamp": "2026-10-31T13:00:14.856094Z"
+  "timestamp": "2026-11-14T14:12:26.126379Z"
 }
 ```
 
@@ -908,7 +900,7 @@ detail.invalid.order=Order {0} has no items
   "code": "bad-request",
   "title": "Bad Request",
   "detail": "Date of birth must be a date like 1990-12-31",
-  "timestamp": "2026-10-31T13:00:14.859062Z"
+  "timestamp": "2026-11-14T14:12:26.141044Z"
 }
 ```
 
@@ -925,7 +917,7 @@ detail.invalid.order=Order {0} has no items
   "code": "http-message-not-readable-exception",
   "title": "Bad Request",
   "detail": "Malformed request body",
-  "timestamp": "2026-10-31T13:00:14.86044Z"
+  "timestamp": "2026-11-14T14:12:26.154978Z"
 }
 ```
 
@@ -942,7 +934,7 @@ detail.invalid.order=Order {0} has no items
   "code": "employee-not-found",
   "title": "Not Found",
   "detail": "Employee 42 not found",
-  "timestamp": "2026-10-31T13:00:14.8624Z"
+  "timestamp": "2026-11-14T14:12:26.16986Z"
 }
 ```
 
@@ -959,7 +951,7 @@ detail.invalid.order=Order {0} has no items
   "code": "bad-request",
   "title": "Bad Request",
   "detail": "Order 7 has no items",
-  "timestamp": "2026-10-31T13:00:14.86569Z",
+  "timestamp": "2026-11-14T14:12:26.184567Z",
   "orderId": 7
 }
 ```
@@ -977,7 +969,7 @@ The `Problems.of(...)` example from [Several errors in one response](#several-er
   "code": "422",
   "title": "Unprocessable Content",
   "detail": "Unprocessable Content",
-  "timestamp": "2026-10-31T13:00:14.866686Z",
+  "timestamp": "2026-11-14T14:12:26.198194Z",
   "errors": [
     {
       "code": "row-3",
@@ -1006,7 +998,7 @@ The `Problems.of(...)` example from [Several errors in one response](#several-er
   "code": "employee-name-taken",
   "title": "Conflict",
   "detail": "An employee with this name already exists",
-  "timestamp": "2026-10-31T13:00:14.868799Z"
+  "timestamp": "2026-11-14T14:12:26.237401Z"
 }
 ```
 
@@ -1023,7 +1015,7 @@ The `Problems.of(...)` example from [Several errors in one response](#several-er
   "code": "conflict",
   "title": "Conflict",
   "detail": "A state with this name already exists",
-  "timestamp": "2026-10-31T13:00:14.869744Z"
+  "timestamp": "2026-11-14T14:12:26.279469Z"
 }
 ```
 
@@ -1038,7 +1030,7 @@ The `Problems.of(...)` example from [Several errors in one response](#several-er
   "code": "max-upload-size-exceeded-exception",
   "title": "Content Too Large",
   "detail": "Upload file size exceeded the maximum allowed limit: 10 MB",
-  "timestamp": "2026-10-31T13:00:14.87083Z"
+  "timestamp": "2026-11-14T14:12:26.294496Z"
 }
 ```
 
@@ -1056,7 +1048,7 @@ returned:
   "code": "illegal-state-exception",
   "title": "Internal Server Error",
   "detail": "An unexpected error occurred",
-  "timestamp": "2026-10-31T13:00:14.871738Z"
+  "timestamp": "2026-11-14T14:12:26.305174Z"
 }
 ```
 
@@ -1071,7 +1063,7 @@ returned:
   "code": "no-resource-found-exception",
   "title": "Not Found",
   "detail": "No resource found for GET /api/unknown",
-  "timestamp": "2026-10-31T13:00:14.878125Z"
+  "timestamp": "2026-11-14T14:12:26.319118Z"
 }
 ```
 
@@ -1088,13 +1080,13 @@ returned:
   "code": "http-request-method-not-supported-exception",
   "title": "Method Not Allowed",
   "detail": "Requested Method: DELETE not allowed, allowed methods are: GET,POST",
-  "timestamp": "2026-10-31T13:00:14.879482Z"
+  "timestamp": "2026-11-14T14:12:26.331766Z"
 }
 ```
 
 ### Unsupported content type
 
-`POST /api/employees` with `Content-Type: application/xml`; the response has `Accept: application/json`:
+`POST /api/employees` with `Content-Type: application/xml`; the response has `Accept: application/json, application/*+json`:
 
 ```json
 {
@@ -1104,14 +1096,14 @@ returned:
   "method": "POST",
   "code": "http-media-type-not-supported-exception",
   "title": "Unsupported Media Type",
-  "detail": "Media Type: application/xml Not Supported, Supported Media Types are: application/json",
-  "timestamp": "2026-10-31T13:00:14.880668Z"
+  "detail": "Media Type: application/xml;charset=UTF-8 Not Supported, Supported Media Types are: application/json, application/*+json",
+  "timestamp": "2026-11-14T14:12:26.34726Z"
 }
 ```
 
 ### Not acceptable
 
-`GET /api/employees?page=0` with `Accept: application/xml`; the response has `Accept: application/json`:
+`GET /api/employees?page=0` with `Accept: application/xml`; the response has `Accept: application/json, application/*+json`:
 
 ```json
 {
@@ -1121,8 +1113,8 @@ returned:
   "method": "GET",
   "code": "http-media-type-not-acceptable-exception",
   "title": "Not Acceptable",
-  "detail": "Media Type Not Acceptable, except: application/json",
-  "timestamp": "2026-10-31T13:00:14.881755Z"
+  "detail": "Media Type Not Acceptable, except: application/json, application/*+json",
+  "timestamp": "2026-11-14T14:12:26.358878Z"
 }
 ```
 
@@ -1139,7 +1131,7 @@ returned:
   "code": "insufficient-authentication-exception",
   "title": "Unauthorized",
   "detail": "Full authentication is required to access this resource",
-  "timestamp": "2026-10-31T13:00:14.883791Z"
+  "timestamp": "2026-11-14T14:12:26.377964Z"
 }
 ```
 

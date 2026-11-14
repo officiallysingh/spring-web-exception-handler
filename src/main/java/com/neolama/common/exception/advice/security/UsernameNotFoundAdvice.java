@@ -1,7 +1,5 @@
 package com.neolama.common.exception.advice.security;
 
-import static com.neolama.common.exception.core.ProblemConstant.BAD_CREDENTIALS_DETAIL;
-
 import com.neolama.common.exception.advice.Exceptional;
 import com.neolama.common.exception.core.ProblemDetails;
 import com.neolama.common.exception.core.ProblemUtils;
@@ -33,8 +31,7 @@ public interface UsernameNotFoundAdvice extends Exceptional {
       final UsernameNotFoundException exception, final NativeWebRequest request) {
     final String errorKey = ProblemUtils.errorKey(BadCredentialsException.class);
     final HttpStatus status = resolveStatus(exception, HttpStatus.UNAUTHORIZED, errorKey);
-    final ProblemDetails problemDetails =
-        toProblemDetails(errorKey, status, BAD_CREDENTIALS_DETAIL);
+    final ProblemDetails problemDetails = toProblemDetails(errorKey, status, "Bad credentials");
     return toResponse(problemDetails, request, exception);
   }
 }

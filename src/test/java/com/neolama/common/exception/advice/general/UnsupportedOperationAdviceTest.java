@@ -7,14 +7,17 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 
-/** {@code UnsupportedOperationException} is 501, with the detail from the shipped bundle. */
+/**
+ * {@code UnsupportedOperationException} is 501, with a fixed detail rather than the exception
+ * message.
+ */
 @AdviceTest
 class UnsupportedOperationAdviceTest {
 
   @Autowired private MockMvcTester mvc;
 
   @Test
-  void isNotImplementedWithShippedDetail() {
+  void isNotImplementedWithFixedDetail() {
     assertProblem(
         this.mvc.get().uri("/general/unsupported").exchange(),
         501,

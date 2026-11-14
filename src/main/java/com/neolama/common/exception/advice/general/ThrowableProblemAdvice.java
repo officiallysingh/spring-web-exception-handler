@@ -9,6 +9,10 @@ import org.springframework.web.context.request.NativeWebRequest;
 /**
  * Advice trait that returns the {@link com.neolama.common.exception.core.ProblemDetails} already
  * carried by a {@link ThrowableProblem}.
+ *
+ * <p>The messages of a problem are looked up when it is built, so the advice logs the {@linkplain
+ * ThrowableProblem#getErrorKey() error key} it was built from at trace level. A problem built from
+ * a list of problems has no key, and nothing is logged.
  */
 public interface ThrowableProblemAdvice extends Exceptional {
 
@@ -22,6 +26,10 @@ public interface ThrowableProblemAdvice extends Exceptional {
   @ExceptionHandler
   default ProblemDetails handleThrowableProblem(
       final ThrowableProblem exception, final NativeWebRequest request) {
+    final String errorKey = exception.getErrorKey();
+    if (errorKey != null) {
+      logErrorKey(errorKey);
+    }
     final ProblemDetails problemDetails = exception.getProblemDetails();
     return toResponse(problemDetails, request, exception);
   }

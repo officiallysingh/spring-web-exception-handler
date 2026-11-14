@@ -1,7 +1,5 @@
 package com.neolama.common.exception.advice.io;
 
-import static com.neolama.common.exception.core.ProblemConstant.DATA_BUFFER_LIMIT_DETAIL;
-
 import com.neolama.common.exception.advice.Exceptional;
 import com.neolama.common.exception.core.ProblemDetails;
 import com.neolama.common.exception.core.ProblemUtils;
@@ -35,7 +33,11 @@ public interface DataBufferLimitExceptionAdvice extends Exceptional {
     final String errorKey = ProblemUtils.errorKey(exception.getClass());
     final HttpStatus status = resolveStatus(exception, HttpStatus.INTERNAL_SERVER_ERROR);
     final ProblemDetails problemDetails =
-        toProblemDetails(errorKey, status, DATA_BUFFER_LIMIT_DETAIL, maxBufferSize);
+        toProblemDetails(
+            errorKey,
+            status,
+            "Response data from a downstream service exceeded the allowed limit: {0}",
+            maxBufferSize);
     return toResponse(problemDetails, request, exception);
   }
 }

@@ -1,8 +1,5 @@
 package com.neolama.common.exception.advice.dao;
 
-import static com.neolama.common.exception.core.ProblemConstant.CONCURRENCY_FAILURE_DETAIL;
-import static com.neolama.common.exception.core.ProblemConstant.OPTIMISTIC_LOCK_DETAIL;
-
 import com.neolama.common.exception.advice.Exceptional;
 import com.neolama.common.exception.core.ProblemDetails;
 import com.neolama.common.exception.core.ProblemUtils;
@@ -22,13 +19,13 @@ import org.springframework.web.context.request.NativeWebRequest;
  * <ul>
  *   <li>An {@link OptimisticLockingFailureException}, such as an {@code @Version} mismatch, means
  *       the record changed since it was read. Status {@link HttpStatus#CONFLICT}, error key {@code
- *       OptimisticLockingFailureException}, and the detail {@value
- *       com.neolama.common.exception.core.ProblemConstant#OPTIMISTIC_LOCK_DETAIL} by default.
+ *       OptimisticLockingFailureException}, and the detail "The resource was changed by another
+ *       request; reload it and try again" by default.
  *   <li>Any other concurrency failure, such as a lock timeout, deadlock, or serialization failure,
  *       is temporary contention in the database. Status {@link HttpStatus#SERVICE_UNAVAILABLE},
  *       error key {@code PessimisticLockingFailureException} or, for a plain one, {@code
- *       ConcurrencyFailureException}, and the detail {@value
- *       com.neolama.common.exception.core.ProblemConstant#CONCURRENCY_FAILURE_DETAIL} by default.
+ *       ConcurrencyFailureException}, and the detail "The request could not be completed because of
+ *       concurrent activity; please retry" by default.
  * </ul>
  *
  * <p>The error key is that Spring base class, not the class thrown: JPA throws subclasses such as
@@ -112,7 +109,11 @@ public interface ConcurrencyFailureAdvice extends Exceptional {
             : resolveStatus(exception, defaultStatus, thrownKey, errorKey);
     final ProblemDetails problemDetails =
         toProblemDetails(
-            errorKey, status, optimistic ? OPTIMISTIC_LOCK_DETAIL : CONCURRENCY_FAILURE_DETAIL);
+            errorKey,
+            status,
+            optimistic
+                ? "The resource was changed by another request; reload it and try again"
+                : "The request could not be completed because of concurrent activity; please retry");
     return toResponse(problemDetails, request, exception);
   }
 }

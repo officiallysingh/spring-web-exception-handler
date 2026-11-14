@@ -24,15 +24,23 @@ public class ThrowableProblem extends RuntimeException {
   /** Problem details carried by this exception. */
   private final ProblemDetails problemDetails;
 
+  /** Error key the problem details were resolved from, or {@code null} when there is none. */
+  private final @Nullable String errorKey;
+
   /**
    * Creates an exception with the given cause and problem details.
    *
    * @param cause the cause of this exception
    * @param problemDetails the problem details to carry
+   * @param errorKey the error key the problem details were resolved from, or {@code null}
    */
-  private ThrowableProblem(final @Nullable Throwable cause, final ProblemDetails problemDetails) {
+  private ThrowableProblem(
+      final @Nullable Throwable cause,
+      final ProblemDetails problemDetails,
+      final @Nullable String errorKey) {
     super(problemDetails.getDetail(), cause);
     this.problemDetails = problemDetails;
+    this.errorKey = errorKey;
   }
 
   /**
@@ -43,6 +51,7 @@ public class ThrowableProblem extends RuntimeException {
   private ThrowableProblem(final ProblemDetails problemDetails) {
     super(problemDetails.getDetail());
     this.problemDetails = problemDetails;
+    this.errorKey = null;
   }
 
   /**
@@ -66,7 +75,34 @@ public class ThrowableProblem extends RuntimeException {
   public static ThrowableProblem of(
       final ProblemDetails problemDetail, @Nullable final Throwable cause) {
     Assert.notNull(problemDetail, "'problemDetails' must not be null");
-    return new ThrowableProblem(cause, problemDetail);
+    return new ThrowableProblem(cause, problemDetail, null);
+  }
+
+  /**
+   * Creates an exception for problem details resolved from an error key, so that the advice can log
+   * the key.
+   *
+   * @param problemDetail the problem details to carry
+   * @param errorKey the error key the problem details were resolved from, or {@code null}
+   * @param cause the cause of this exception, or {@code null} when there is none
+   * @return a new exception whose message is the problem detail
+   */
+  static ThrowableProblem of(
+      final ProblemDetails problemDetail,
+      @Nullable final String errorKey,
+      @Nullable final Throwable cause) {
+    Assert.notNull(problemDetail, "'problemDetails' must not be null");
+    return new ThrowableProblem(cause, problemDetail, errorKey);
+  }
+
+  /**
+   * Returns the error key the problem details were resolved from.
+   *
+   * @return the error key, or {@code null} for problem details built without one, such as from a
+   *     list of problems or passed to {@link #of(ProblemDetails)}
+   */
+  public @Nullable String getErrorKey() {
+    return this.errorKey;
   }
 
   /**

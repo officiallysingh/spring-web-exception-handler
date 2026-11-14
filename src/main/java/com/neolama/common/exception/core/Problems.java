@@ -295,16 +295,16 @@ public class Problems {
      */
     private ThrowableProblem build(final HttpStatus status) {
       ProblemDetails problemDetail;
+      String resolvedKey = null;
       if (Objects.nonNull(this.errorType)) {
+        resolvedKey = this.errorType.getErrorKey();
         problemDetail =
             ProblemDetails.of(
-                this.errorType.getErrorKey(),
-                this.errorType.getDefaultDetail(),
-                this.detailsArgs,
-                status);
+                resolvedKey, this.errorType.getDefaultDetail(), this.detailsArgs, status);
       } else if (Objects.nonNull(this.errorKey)) {
+        resolvedKey = this.errorKey;
         problemDetail =
-            ProblemDetails.of(this.errorKey, this.defaultDetail, this.detailsArgs, status);
+            ProblemDetails.of(resolvedKey, this.defaultDetail, this.detailsArgs, status);
       } else {
         // Initialized with problems.
         problemDetail = ProblemDetails.of(status);
@@ -313,7 +313,7 @@ public class Problems {
       if (MapUtils.isNotEmpty(this.parameters)) {
         problemDetail.setProperties(this.parameters);
       }
-      return ThrowableProblem.of(problemDetail, this.cause);
+      return ThrowableProblem.of(problemDetail, resolvedKey, this.cause);
     }
   }
 }

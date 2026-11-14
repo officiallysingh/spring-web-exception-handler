@@ -3,7 +3,13 @@ package com.neolama.common.exception.core;
 import java.net.URI;
 import lombok.experimental.UtilityClass;
 
-/** Message-source prefixes, JSON property names, and fallback problem text. */
+/**
+ * Message-source prefixes, JSON property names, and fallback problem text.
+ *
+ * <p>Only constants shared across classes, or part of such a family (the message-source prefixes,
+ * the JSON property names), belong here. Text used by a single advice, such as its default detail,
+ * is a literal in that advice.
+ */
 @UtilityClass
 public class ProblemConstant {
 
@@ -55,32 +61,4 @@ public class ProblemConstant {
 
   /** Client-safe fallback detail for a failed request validation. */
   public static final String VALIDATION_FAILED_DETAIL = "Request validation failed";
-
-  /** Client-safe fallback detail for a duplicate-key or unique-constraint violation. */
-  public static final String DUPLICATE_KEY_DETAIL = "The request conflicts with existing data";
-
-  /** Fallback detail for an optimistic-lock conflict, such as an {@code @Version} mismatch. */
-  public static final String OPTIMISTIC_LOCK_DETAIL =
-      "The resource was changed by another request; reload it and try again";
-
-  /** Fallback detail for a lock timeout, deadlock, or other temporary database contention. */
-  public static final String CONCURRENCY_FAILURE_DETAIL =
-      "The request could not be completed because of concurrent activity; please retry";
-
-  /** Client-safe fallback detail for a request body that cannot be read. */
-  public static final String MALFORMED_BODY_DETAIL = "Malformed request body";
-
-  /** Client-safe fallback detail for an unknown user, so it reads like a wrong password. */
-  public static final String BAD_CREDENTIALS_DETAIL = "Bad credentials";
-
-  /** Fallback detail for an upload over the size limit; {@code {0}} is the readable limit. */
-  public static final String UPLOAD_SIZE_EXCEEDED_DETAIL =
-      "Upload file size exceeded the maximum allowed limit: {0}";
-
-  /**
-   * Fallback detail for downstream response data over a buffer limit; {@code {0}} is the readable
-   * limit.
-   */
-  public static final String DATA_BUFFER_LIMIT_DETAIL =
-      "Response data from a downstream service exceeded the allowed limit: {0}";
 }

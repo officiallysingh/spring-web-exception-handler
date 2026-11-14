@@ -10,7 +10,8 @@ import org.springframework.web.context.request.NativeWebRequest;
  * Advice trait that handles {@link UnsupportedOperationException} and returns {@link
  * ProblemDetails}.
  *
- * <p>The status defaults to {@link HttpStatus#NOT_IMPLEMENTED}.
+ * <p>The status defaults to {@link HttpStatus#NOT_IMPLEMENTED} and the detail to "The requested
+ * operation is not supported yet", rather than the exception message.
  */
 public interface UnsupportedOperationAdvice extends Exceptional {
 
@@ -25,7 +26,8 @@ public interface UnsupportedOperationAdvice extends Exceptional {
   default ProblemDetails handleUnsupportedOperation(
       final UnsupportedOperationException exception, final NativeWebRequest request) {
     final HttpStatus status = resolveStatus(exception, HttpStatus.NOT_IMPLEMENTED);
-    final ProblemDetails problemDetails = toProblemDetails(exception, status);
+    final ProblemDetails problemDetails =
+        toProblemDetails(exception, status, "The requested operation is not supported yet");
     return toResponse(problemDetails, request, exception);
   }
 }

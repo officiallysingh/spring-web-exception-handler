@@ -90,6 +90,17 @@ class ProblemsTest {
           .isEqualTo(400);
     }
 
+    /** The key is kept so that the advice can log it; messages are resolved before that. */
+    @Test
+    void errorKeyIsKept() {
+      assertThat(Problems.of("order.not.found").throwAble().getErrorKey())
+          .isEqualTo("order.not.found");
+      assertThat(Problems.of(TestErrors.ORDER_NOT_FOUND).throwAble().getErrorKey())
+          .isEqualTo("OrderNotFound");
+      assertThat(Problems.of(Problem.of("a", "A", "first")).throwAble().getErrorKey()).isNull();
+      assertThat(ThrowableProblem.of(ProblemDetails.of(HttpStatus.GONE)).getErrorKey()).isNull();
+    }
+
     @Test
     void causeIsKept() {
       final IllegalStateException cause = new IllegalStateException("boom");

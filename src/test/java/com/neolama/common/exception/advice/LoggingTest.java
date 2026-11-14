@@ -20,6 +20,8 @@ class LoggingTest {
 
   private static final String STACK_FRAME = "\tat ";
 
+  private static final String ERROR_KEYS = "Error Keys ----------------------";
+
   @Autowired private MockMvcTester mvc;
 
   @Test
@@ -63,6 +65,36 @@ class LoggingTest {
       assertThat(output.getAll())
           .contains("Error Keys")
           .contains("MethodArgumentNotValidException.NotBlank.validatedPayload.name");
+    }
+
+    @Test
+    void logsTheFullKeyOfAParameterTypeMismatch(final CapturedOutput output) {
+      assertThat(this.mvc.get().uri("/validation/number").param("count", "abc")).hasStatus(400);
+      assertThat(output.getAll())
+          .contains(
+              ERROR_KEYS
+                  + System.lineSeparator()
+                  + "MethodArgumentTypeMismatchException.ValidationTestController.number.count");
+    }
+
+    @Test
+    void logsTheFullKeyOfAPropertyTypeMismatch(final CapturedOutput output) {
+      assertThat(this.mvc.get().uri("/validation/type-mismatch")).hasStatus(400);
+      assertThat(output.getAll())
+          .contains(ERROR_KEYS + System.lineSeparator() + "TypeMismatchException.");
+    }
+
+    @Test
+    void logsTheKeyOfAThrownProblem(final CapturedOutput output) {
+      assertThat(this.mvc.get().uri("/general/problem")).hasStatus(404);
+      assertThat(output.getAll())
+          .contains(ERROR_KEYS + System.lineSeparator() + "OrderNotFound" + System.lineSeparator());
+    }
+
+    @Test
+    void logsNoKeyForAProblemBuiltFromProblems(final CapturedOutput output) {
+      assertThat(this.mvc.get().uri("/general/problems")).hasStatus(500);
+      assertThat(output.getAll()).doesNotContain(ERROR_KEYS);
     }
   }
 

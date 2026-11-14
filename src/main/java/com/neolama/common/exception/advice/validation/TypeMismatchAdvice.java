@@ -43,7 +43,7 @@ public interface TypeMismatchAdvice extends Exceptional {
     final HttpStatus status =
         resolveStatus(exception, HttpStatus.BAD_REQUEST, errorKey, exceptionKey);
     final ProblemDetails problemDetails =
-        ProblemDetails.of(errorKey, "Invalid value for property " + propertyName, status);
+        toProblemDetails(errorKey, status, "Invalid value for property " + propertyName);
     return toResponse(problemDetails, request, exception);
   }
 }
